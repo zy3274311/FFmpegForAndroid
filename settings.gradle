@@ -1,0 +1,3 @@
+include ':nativeffmpeg'
+include ':app'
+rootProject.name = "FFmpegForAndroid"

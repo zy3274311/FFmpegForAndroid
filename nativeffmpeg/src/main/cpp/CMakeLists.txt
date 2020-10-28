@@ -1,0 +1,88 @@
+# For more information about using CMake with Android Studio, read the
+# documentation: https://d.android.com/studio/projects/add-native-code.html
+
+# Sets the minimum version of CMake required to build the native library.
+
+cmake_minimum_required(VERSION 3.10.2)
+
+# Declares and names the project.
+
+project("ffmpegforandroid")
+
+# configure import libs
+set(distribution_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../distribution)
+
+# ffmpeg
+
+add_library(avutil SHARED IMPORTED)
+set_target_properties(avutil PROPERTIES IMPORTED_LOCATION
+        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavutil.so)
+#
+#add_library(libswscale SHARED IMPORTED)
+#set_target_properties(libswscale PROPERTIES IMPORTED_LOCATION
+#        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libswscale.so)
+#
+#add_library(libavformat SHARED IMPORTED)
+#set_target_properties(libavformat PROPERTIES IMPORTED_LOCATION
+#        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavformat.so)
+#
+#add_library(libavfilter SHARED IMPORTED)
+#set_target_properties(libavfilter PROPERTIES IMPORTED_LOCATION
+#        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavfilter.so)
+#
+#add_library(libavdevice SHARED IMPORTED)
+#set_target_properties(libavdevice PROPERTIES IMPORTED_LOCATION
+#        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavdevice.so)
+#
+#add_library(libavcodec SHARED IMPORTED)
+#set_target_properties(libavcodec PROPERTIES IMPORTED_LOCATION
+#        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavcodec.so)
+
+add_library(swresample SHARED IMPORTED)
+set_target_properties(swresample PROPERTIES IMPORTED_LOCATION
+        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libswresample.so)
+
+
+# Creates and names a library, sets it as either STATIC
+# or SHARED, and provides the relative paths to its source code.
+# You can define multiple libraries, and CMake builds them for you.
+# Gradle automatically packages shared libraries with your APK.
+
+add_library( # Sets the name of the library.
+        native-lib
+
+        # Sets the library as a shared library.
+        SHARED
+
+        # Provides a relative path to your source file(s).
+        swresample_jni.cpp)
+
+# add ffmpeg include
+target_include_directories(native-lib PRIVATE
+        ${distribution_DIR}/ffmpeg/armeabi-v7a/include)
+
+# Searches for a specified prebuilt library and stores the path as a
+# variable. Because CMake includes system libraries in the search path by
+# default, you only need to specify the name of the public NDK library
+# you want to add. CMake verifies that the library exists before
+# completing its build.
+
+find_library( # Sets the name of the path variable.
+        log-lib
+
+        # Specifies the name of the NDK library that
+        # you want CMake to locate.
+        log )
+
+# Specifies libraries CMake should link to your target library. You
+# can link multiple libraries, such as libraries you define in this
+# build script, prebuilt third-party libraries, or system libraries.
+
+target_link_libraries( # Specifies the target library.
+        native-lib
+
+        avutil
+        swresample
+        # Links the target library to the log library
+        # included in the NDK.
+        ${log-lib} )
