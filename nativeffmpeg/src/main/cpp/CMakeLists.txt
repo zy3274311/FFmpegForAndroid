@@ -21,11 +21,11 @@ set_target_properties(avutil PROPERTIES IMPORTED_LOCATION
 #add_library(libswscale SHARED IMPORTED)
 #set_target_properties(libswscale PROPERTIES IMPORTED_LOCATION
 #        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libswscale.so)
-#
-#add_library(libavformat SHARED IMPORTED)
-#set_target_properties(libavformat PROPERTIES IMPORTED_LOCATION
-#        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavformat.so)
-#
+
+add_library(avformat SHARED IMPORTED)
+set_target_properties(avformat PROPERTIES IMPORTED_LOCATION
+        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavformat.so)
+
 #add_library(libavfilter SHARED IMPORTED)
 #set_target_properties(libavfilter PROPERTIES IMPORTED_LOCATION
 #        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavfilter.so)
@@ -33,10 +33,10 @@ set_target_properties(avutil PROPERTIES IMPORTED_LOCATION
 #add_library(libavdevice SHARED IMPORTED)
 #set_target_properties(libavdevice PROPERTIES IMPORTED_LOCATION
 #        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavdevice.so)
-#
-#add_library(libavcodec SHARED IMPORTED)
-#set_target_properties(libavcodec PROPERTIES IMPORTED_LOCATION
-#        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavcodec.so)
+
+add_library(avcodec SHARED IMPORTED)
+set_target_properties(avcodec PROPERTIES IMPORTED_LOCATION
+        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavcodec.so)
 
 add_library(swresample SHARED IMPORTED)
 set_target_properties(swresample PROPERTIES IMPORTED_LOCATION
@@ -49,17 +49,20 @@ set_target_properties(swresample PROPERTIES IMPORTED_LOCATION
 # Gradle automatically packages shared libraries with your APK.
 
 add_library( # Sets the name of the library.
-        native-lib
+        ffmpeg
 
         # Sets the library as a shared library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        swresample_jni.cpp)
+        register_jni.cpp
+        swresample_jni.cpp
+        avutil_jni.cpp
+        avformat_jni.cpp)
 
 # add ffmpeg include
-target_include_directories(native-lib PRIVATE
-        ${distribution_DIR}/ffmpeg/armeabi-v7a/include)
+target_include_directories(ffmpeg PRIVATE
+        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/include)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -79,10 +82,12 @@ find_library( # Sets the name of the path variable.
 # build script, prebuilt third-party libraries, or system libraries.
 
 target_link_libraries( # Specifies the target library.
-        native-lib
+        ffmpeg
 
+        avformat
         avutil
         swresample
+        avcodec
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib} )
