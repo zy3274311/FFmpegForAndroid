@@ -6,9 +6,9 @@ extern "C" {
 #include <libavutil/channel_layout.h>
 
 JNIEXPORT jint JNICALL
-Java_io_github_zy3274311_nativeffmpeg_avutil_ChannelLayout_getChannelLayout(JNIEnv *env,
-                                                                            jclass thiz,
-                                                                            jint channelCount) {
+native_getChannelLayout(JNIEnv *env,
+                        jclass thiz,
+                        jint channelCount) {
     // TODO: implement getChannelLayoutByName()
     switch (channelCount) {
         case 1:
@@ -27,8 +27,7 @@ extern "C" {
 #include <libavutil/samplefmt.h>
 
 JNIEXPORT jint JNICALL
-Java_io_github_zy3274311_nativeffmpeg_avutil_SampleFmt_getSampleFormat(JNIEnv *env, jclass clazz,
-                                                                       jint sizeByBit) {
+native_getSampleFormat(JNIEnv *env, jclass clazz, jint sizeByBit) {
     // TODO: implement getSampleFormat()
     switch (sizeByBit) {
         case 8:
