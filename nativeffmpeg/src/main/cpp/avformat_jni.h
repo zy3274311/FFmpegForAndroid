@@ -10,5 +10,4 @@ JNIEXPORT jstring JNICALL native_configuration(JNIEnv *env, jobject thiz);
 
 JNIEXPORT jstring JNICALL native_license(JNIEnv *env, jobject thiz);
 
-
 #endif //FFMPEGFORANDROID_AVFORMAT_JNI_H

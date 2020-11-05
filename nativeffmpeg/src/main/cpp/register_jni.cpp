@@ -1,17 +1,20 @@
 #include <jni.h>
-#include "log.h"
+#include "ndk_log.h"
 
 
 extern "C" {
 #include "swresample_jni.h"
 #include "avformat_jni.h"
 #include "avutil_jni.h"
+#include "mediaplayer_jni.h"
 
 int Load_Swresample(JNIEnv *env);
 int Load_AvFormat(JNIEnv *env);
 int Load_AvUtil(JNIEnv *pEnv);
+int Load_Player(JNIEnv *pEnv);
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
+    LOGE("FFmpeg", "JNI_OnLoad start");
     JNIEnv *env;
     if (vm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6) != JNI_OK) {
         return JNI_ERR;
@@ -25,6 +28,10 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     rc = Load_AvUtil(env);
     if (rc != JNI_OK) return rc;
 
+    rc = Load_Player(env);
+    if (rc != JNI_OK) return rc;
+
+    LOGE("FFmpeg", "JNI_OnLoad sucess");
     return JNI_VERSION_1_6;
 }
 
@@ -51,9 +58,9 @@ int Load_AvFormat(JNIEnv *env) {
 
     // Register your class' native methods.
     static const JNINativeMethod methods[] = {
-            {"getAvFormatVersion", "()I",                  reinterpret_cast<jint *>(native_getAvFormatVersion)},
-            {"configuration",      "()Ljava/lang/String;", reinterpret_cast<jstring *>(native_configuration)},
-            {"license",            "()Ljava/lang/String;", reinterpret_cast<jstring *>(native_license)},
+            {"getAvFormatVersion", "()I",                   (jint *) (native_getAvFormatVersion)},
+            {"configuration",      "()Ljava/lang/String;",  (jstring *) (native_configuration)},
+            {"license",            "()Ljava/lang/String;",  (jstring *) (native_license)},
     };
 
     int rc = env->RegisterNatives(c, methods, sizeof(methods) / sizeof(JNINativeMethod));
@@ -68,7 +75,7 @@ int Load_AvUtil(JNIEnv *env) {
 
 // Register your class' native methods.
     static const JNINativeMethod methods[] = {
-            {"getChannelLayout", "(I)I", reinterpret_cast<jint *>(native_getChannelLayout)},
+            {"getChannelLayout", "(I)I", (jint *) (native_getChannelLayout)},
     };
 
     int rc = env->RegisterNatives(c, methods, sizeof(methods) / sizeof(JNINativeMethod));
@@ -82,7 +89,7 @@ int Load_AvUtil(JNIEnv *env) {
 
 // Register your class' native methods.
     static const JNINativeMethod SampleFmtMethods[] = {
-            {"getSampleFormat", "(I)I", reinterpret_cast<jint *>(native_getSampleFormat)},
+            {"getSampleFormat", "(I)I", (jint *) (native_getSampleFormat)},
     };
 
     int SampleFmtRc = env->RegisterNatives(SampleFmtC, SampleFmtMethods,
@@ -91,6 +98,27 @@ int Load_AvUtil(JNIEnv *env) {
     return rc;
 }
 
+int Load_Player(JNIEnv *env) {
+    LOGE("FFmpeg", "Load_Player start");
+    jclass c = env->FindClass("io/github/zy3274311/nativeffmpeg/player/FFMediaPlayer");
+    if (c == nullptr) return JNI_ERR;
+
+    // Register your class' native methods.
+    static const JNINativeMethod methods[] = {
+            {"play",               "(Ljava/lang/String;)V", (void *) (native_play)},
+            {"stop",               "()V",                   (void *) (native_stop)},
+    };
+
+    int rc = env->RegisterNatives(c, methods, sizeof(methods) / sizeof(JNINativeMethod));
+    LOGE("FFmpeg", "FFMediaPlayer RegisterNatives rc:%d", rc);
+    return rc;
+}
+
+
+JNIEXPORT jint JNI_OnUnLoad(JavaVM *vm, void *reserved) {
+    LOGE("FFmpeg", "JNI_OnUnLoad()");
+    return JNI_VERSION_1_6;
+}
 }
 
 

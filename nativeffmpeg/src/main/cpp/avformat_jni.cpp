@@ -3,7 +3,6 @@
 //
 #include <jni.h>
 
-
 extern "C" {
 #include <libavformat/avformat.h>
 
@@ -14,15 +13,14 @@ JNIEXPORT jint JNICALL native_getAvFormatVersion(JNIEnv *env, jobject thiz) {
 
 JNIEXPORT jstring JNICALL native_configuration(JNIEnv *env, jobject thiz) {
     // TODO: implement configuration()
-    const char * conf = avformat_configuration();
+    const char *conf = avformat_configuration();
     return env->NewStringUTF(conf);
 }
 
 JNIEXPORT jstring JNICALL native_license(JNIEnv *env, jobject thiz) {
     // TODO: implement configuration()
-    const char * conf = avformat_license();
+    const char *conf = avformat_license();
     return env->NewStringUTF(conf);
 }
-
 
 }

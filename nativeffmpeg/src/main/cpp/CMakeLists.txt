@@ -58,7 +58,8 @@ add_library( # Sets the name of the library.
         register_jni.cpp
         swresample_jni.cpp
         avutil_jni.cpp
-        avformat_jni.cpp)
+        avformat_jni.cpp
+        mediaplayer_jni.cpp)
 
 # add ffmpeg include
 target_include_directories(ffmpeg PRIVATE

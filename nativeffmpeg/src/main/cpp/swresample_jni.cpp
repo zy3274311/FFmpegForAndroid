@@ -1,5 +1,5 @@
 #include <jni.h>
-#include "log.h"
+#include "ndk_log.h"
 
 extern "C" {
 //因为ffmpeg是一个纯C语言编写的库，使用C++调用C代码时候，需要使用“extern "C"”包围头文件
@@ -36,6 +36,7 @@ native_freeSwr(
         JNIEnv *env, jobject thiz, jlong pr) {
     // TODO: implement free()
     auto *swrContext = reinterpret_cast<SwrContext *>(pr);
+    swr_close(swrContext);
     swr_free(&swrContext);
 }
 

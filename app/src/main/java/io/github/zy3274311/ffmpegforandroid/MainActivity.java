@@ -2,19 +2,18 @@ package io.github.zy3274311.ffmpegforandroid;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.media.AudioFormat;
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TextView;
 
 import java.util.Locale;
 
 import io.github.zy3274311.nativeffmpeg.FFmpeg;
 import io.github.zy3274311.nativeffmpeg.avformat.AVFormat;
-import io.github.zy3274311.nativeffmpeg.swresample.Swresample;
 
 
 public class MainActivity extends AppCompatActivity {
-    private Swresample swresample;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,19 +29,16 @@ public class MainActivity extends AppCompatActivity {
                 , avFormat.configuration()
                 , avFormat.license());
         tv.setText(txt);
-        swresample = new Swresample();
-        swresample.init(
-                AudioFormat.CHANNEL_IN_STEREO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                48000,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_8BIT,
-                44100);
+
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        swresample.release();
+
+    public void onClickAVFormat(View view) {
+        startActivity(new Intent(this, FFMediaPlayerActivity.class));
+    }
+
+    public void onClickSwresample(View view) {
+        startActivity(new Intent(this, SwresampleActivity.class));
+
     }
 }
