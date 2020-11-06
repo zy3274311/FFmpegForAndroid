@@ -18,30 +18,22 @@ public class FFMediaPlayerActivity extends AppCompatActivity {
         TextView url_tv = findViewById(R.id.url_tv);
         url_tv.setText(URL);
         ffMediaPlayer = new FFMediaPlayer();
+        ffMediaPlayer.setDataSource(URL);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        ffMediaPlayer.stop();
+        ffMediaPlayer.release();
     }
 
     public void onClickPlay(View view) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                ffMediaPlayer.play(URL);
-            }
-        }).start();
+        ffMediaPlayer.play();
+
     }
 
     public void onClickStop(View view) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                ffMediaPlayer.stop();
-            }
-        }).start();
+        ffMediaPlayer.stop();
     }
 
 }

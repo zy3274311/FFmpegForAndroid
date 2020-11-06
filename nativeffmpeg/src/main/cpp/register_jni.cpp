@@ -58,9 +58,9 @@ int Load_AvFormat(JNIEnv *env) {
 
     // Register your class' native methods.
     static const JNINativeMethod methods[] = {
-            {"getAvFormatVersion", "()I",                   (jint *) (native_getAvFormatVersion)},
-            {"configuration",      "()Ljava/lang/String;",  (jstring *) (native_configuration)},
-            {"license",            "()Ljava/lang/String;",  (jstring *) (native_license)},
+            {"getAvFormatVersion", "()I",                  (jint *) (native_getAvFormatVersion)},
+            {"configuration",      "()Ljava/lang/String;", (jstring *) (native_configuration)},
+            {"license",            "()Ljava/lang/String;", (jstring *) (native_license)},
     };
 
     int rc = env->RegisterNatives(c, methods, sizeof(methods) / sizeof(JNINativeMethod));
@@ -105,8 +105,11 @@ int Load_Player(JNIEnv *env) {
 
     // Register your class' native methods.
     static const JNINativeMethod methods[] = {
-            {"play",               "(Ljava/lang/String;)V", (void *) (native_play)},
-            {"stop",               "()V",                   (void *) (native_stop)},
+            {"_init",          "()J",                    (jlong *) (native_init)},
+            {"_setDataSource", "(JLjava/lang/String;)V", (void *) (native_setDataSource)},
+            {"_play",          "(J)V",                   (void *) (native_play)},
+            {"_stop",          "(J)V",                   (void *) (native_stop)},
+            {"_release",       "(J)V",                   (void *) (native_release)},
     };
 
     int rc = env->RegisterNatives(c, methods, sizeof(methods) / sizeof(JNINativeMethod));

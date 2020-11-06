@@ -8,12 +8,16 @@
 
 #include <libavformat/avformat.h>
 
-JNIEXPORT void JNICALL native_play(JNIEnv *env, jobject thiz, jstring url);
-JNIEXPORT void JNICALL native_stop(JNIEnv *env, jobject thiz);
+JNIEXPORT jlong JNICALL native_init(JNIEnv *env, jobject thiz);
+JNIEXPORT void JNICALL native_setDataSource(JNIEnv *env, jobject thiz, jlong ptr, jstring url_);
+JNIEXPORT void JNICALL native_play(JNIEnv *env, jobject thiz, jlong ptr);
+JNIEXPORT void JNICALL native_stop(JNIEnv *env, jobject thiz, jlong ptr);
+JNIEXPORT void JNICALL native_release(JNIEnv *env, jobject thiz, jlong ptr);
 
-struct MediaPlayer {
+typedef struct MediaPlayer {
     AVFormatContext *fmt_ctx;
     AVCodecContext *decoder_ctx;
+    const char *url;
 };
 
 

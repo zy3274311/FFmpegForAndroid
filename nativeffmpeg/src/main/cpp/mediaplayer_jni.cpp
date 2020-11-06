@@ -9,22 +9,44 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/error.h>
 #include <libavutil/log.h>
+#include "mediaplayer_jni.h"
+
 static void av_log(void *ptr, int level, const char *fmt, va_list vl) {
 //    VLOGE("FFmpeg", fmt, vl);
 }
 
 bool stop;
 
-JNIEXPORT void JNICALL native_play(JNIEnv *env, jobject thiz, jstring url_) {
-    LOGE("FFmpeg", "AVFormat native_play");
+JNIEXPORT jlong JNICALL native_init(JNIEnv *env, jobject thiz) {
+    LOGE("FFmpeg", "FFMediaPlayer native_init");
+    auto *mediaPlayer = (MediaPlayer *) malloc(1);
+    mediaPlayer->fmt_ctx = nullptr;
+    mediaPlayer->decoder_ctx = nullptr;
+    return (jlong) &mediaPlayer;
+}
+
+
+JNIEXPORT void JNICALL native_setDataSource(JNIEnv *env, jobject thiz, jlong ptr, jstring url_) {
+    LOGE("FFmpeg", "FFMediaPlayer native_setDataSource");
+    auto *player = (MediaPlayer *) ptr;
+    LOGE("FFmpeg", "FFMediaPlayer native_setDataSource 2");
+    jboolean isCopy = JNI_TRUE;
+    player->url = env->GetStringUTFChars(url_, &isCopy);
+    LOGE("FFmpeg", "FFMediaPlayer native_setDataSource url:%s", player->url);
+}
+
+JNIEXPORT void JNICALL native_play(JNIEnv *env, jobject thiz, jlong ptr) {
+    LOGE("FFmpeg", "FFMediaPlayer native_play");
+    auto *player =(MediaPlayer *)ptr;
+
     av_log_set_callback(av_log);//set av_log callback
     // TODO: implement configuration()s
     stop = false;
-    const char *url = env->GetStringUTFChars(url_, 0);
+    const char *url = player->url;
     int ret;
     AVPacket dec_pkt;
-    AVFormatContext *fmt_ctx;
-    AVCodecContext *decoder_ctx;
+    AVFormatContext *fmt_ctx = player->fmt_ctx;
+    AVCodecContext *decoder_ctx = player->decoder_ctx;
     AVCodec *decoder_ret;
     int video_track_index;
     int audio_track_index;
@@ -85,7 +107,15 @@ JNIEXPORT void JNICALL native_play(JNIEnv *env, jobject thiz, jstring url_) {
 }
 
 
-JNIEXPORT void JNICALL native_stop(JNIEnv *env, jobject thiz) {
+JNIEXPORT void JNICALL native_stop(JNIEnv *env, jobject thiz, jlong ptr) {
+    LOGE("FFmpeg", "FFMediaPlayer native_stop");
+    auto *player =(MediaPlayer *)ptr;
     stop = true;
 }
+
+
+JNIEXPORT void JNICALL native_release(JNIEnv *env, jobject thiz, jlong ptr) {
+    LOGE("FFmpeg", "FFMediaPlayer native_release");
+}
+
 }
