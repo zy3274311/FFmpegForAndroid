@@ -59,10 +59,12 @@ add_library( # Sets the name of the library.
         swresample_jni.cpp
         avutil_jni.cpp
         avformat_jni.cpp
-        mediaplayer_jni.cpp)
+        player_jni.cpp
+        mediaplayer.cpp
+        player.cpp)
 
 # add ffmpeg include
-target_include_directories(ffmpeg PRIVATE
+target_include_directories(ffmpeg PUBLIC
         ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/include)
 
 # Searches for a specified prebuilt library and stores the path as a

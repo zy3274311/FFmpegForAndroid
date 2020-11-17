@@ -26,6 +26,7 @@ public class FFMediaPlayer {
         _release(ptr);
     }
 
+
     private native long _init();
 
     private native void _setDataSource(long ptr, String url);

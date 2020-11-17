@@ -9,7 +9,7 @@ import android.widget.TextView;
 import io.github.zy3274311.nativeffmpeg.player.FFMediaPlayer;
 
 public class FFMediaPlayerActivity extends AppCompatActivity {
-    private static String URL = "http://wliveplay.58cdn.com.cn/live/bVDe1324319498299293696.flv";
+    private static String URL = "http://wliveplay.58cdn.com.cn/live/6J9a1328531183935488000.flv";
     private FFMediaPlayer ffMediaPlayer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {

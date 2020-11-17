@@ -6,7 +6,7 @@ extern "C" {
 #include "swresample_jni.h"
 #include "avformat_jni.h"
 #include "avutil_jni.h"
-#include "mediaplayer_jni.h"
+#include "player_jni.h"
 
 int Load_Swresample(JNIEnv *env);
 int Load_AvFormat(JNIEnv *env);
