@@ -60,7 +60,6 @@ add_library( # Sets the name of the library.
         avutil_jni.cpp
         avformat_jni.cpp
         player_jni.cpp
-        mediaplayer.cpp
         player.cpp)
 
 # add ffmpeg include

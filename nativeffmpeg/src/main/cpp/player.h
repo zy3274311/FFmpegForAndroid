@@ -12,15 +12,10 @@ enum PlayerStatus {
 };
 
 class player {
-private:
-    AVFormatContext *fmt_ctx = nullptr;
-    AVCodecContext *video_dec_ctx = nullptr;
-    AVCodecContext *audio_dec_ctx = nullptr;
-    PlayerStatus status;
-    AVStream *video_stream = nullptr;
-    AVStream *audio_stream = nullptr;
 public:
+    PlayerStatus status;
     const char *url = nullptr;
+    pthread_t play_tid;
 
     player();
 

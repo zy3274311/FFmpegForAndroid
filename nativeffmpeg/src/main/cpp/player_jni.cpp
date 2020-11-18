@@ -3,7 +3,6 @@
 //
 
 #include <jni.h>
-#include <pthread.h>
 #include "ndk_log.h"
 #include "player.h"
 
@@ -33,22 +32,11 @@ JNIEXPORT void JNICALL native_setDataSource(JNIEnv *env, jobject thiz, jlong ptr
     LOGE("FFmpeg", "FFMediaPlayer native_setDataSource url:%s", url);
 }
 
-void *pthread_play(void * arg) {
-    long ptr = reinterpret_cast<long>(arg);
-    auto *p = reinterpret_cast<player *>(ptr);
-    LOGE("FFmpeg", "FFMediaPlayer pthread_play url:%s", p->url);
-    p->play();
-    return nullptr;
-}
 
 JNIEXPORT void JNICALL native_play(JNIEnv *env, jobject thiz, jlong ptr) {
     LOGE("FFmpeg", "FFMediaPlayer native_play ptr:%ld", ptr);
-    long ptr_ = ptr;
-    int ret;
-    pthread_t play_tid;
-    ret = pthread_create(&play_tid, nullptr, pthread_play, reinterpret_cast<void *>(ptr_));
-    LOGE("FFmpeg", "FFMediaPlayer native_play ret:%d", ret);
-
+    auto *p = reinterpret_cast<player *>(ptr);
+    p->play();
 }
 
 
