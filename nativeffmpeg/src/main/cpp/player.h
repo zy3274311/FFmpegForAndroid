@@ -17,7 +17,13 @@ public:
     std::deque<AVFrame> avframes;
     PlayerStatus status;
     const char *url = nullptr;
-    pthread_t play_tid;
+    pthread_t* tid_demuxer;
+    pthread_mutex_t mutex_t_demuxer;
+    pthread_cond_t cond_t_demuxer;
+
+    pthread_t* tid_sdl;
+    pthread_mutex_t mutex_t_sdl;
+    pthread_cond_t cond_t_sdl;
 
     player();
 

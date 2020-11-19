@@ -100,7 +100,7 @@ void player::setDataSource(const char *url_) {
 
 void *pthread_run(void *arg) {
     auto *p = reinterpret_cast<player *>(arg);
-    LOGE("FFmpeg", "pthread_run play_tid:%ld", p->play_tid);
+    LOGE("FFmpeg", "pthread_run tid_demuxer:%ld", *p->tid_demuxer);
     AVPacket pkt;
     uint8_t *video_dst_data[4];
     int video_dst_linesize[4];
@@ -194,13 +194,18 @@ void *pthread_run(void *arg) {
             ret = decode_packet(audio_dec_ctx, &pkt, &p->avframes);
         }
 
-
-        LOGE("FFmpeg", "av_read_frame size:%d", p->avframes.size());
         if (ret < 0) {
             char *errorStr = av_err2str(ret);
             LOGE("FFmpeg", "decode_packet errorStr:%s", errorStr);
             break;
         }
+
+        pthread_cond_signal(&p->cond_t_sdl);
+        int frameSize = p->avframes.size();
+        if(frameSize>=30) {
+            pthread_cond_wait(&p->cond_t_demuxer, &p->mutex_t_demuxer);
+        }
+        LOGE("FFmpeg", "av_read_frame size:%d", frameSize);
         av_packet_unref(&pkt);
     }
 
@@ -220,17 +225,42 @@ void *pthread_run(void *arg) {
     return nullptr;
 }
 
+
+void *pthread_run_sdl(void *arg) {
+    auto *p = reinterpret_cast<player *>(arg);
+    while (p->status == PlayerStatus::START) {
+        int frameSize = p->avframes.size();
+        if(frameSize>0){
+            AVFrame *frame = &p->avframes.front();
+            p->avframes.pop_front();
+
+
+            LOGE("FFmpeg", "pthread_run_sdl pkt_size:%d", frame->pkt_size);
+//            av_frame_free(&frame);
+
+            pthread_cond_signal(&p->cond_t_demuxer);
+        } else {
+            pthread_cond_wait(&p->cond_t_sdl, &p->mutex_t_sdl);
+        }
+    }
+    return nullptr;
+}
 void player::play() {
     LOGE("FFmpeg", "play url:%s", url);
     status = START;
     int ret;
-    ret = pthread_create(&play_tid, nullptr, pthread_run, this);
-    LOGE("FFmpeg", "native_play ret:%d", ret);
+    ret = pthread_create(tid_demuxer, nullptr, pthread_run, this);
+    LOGE("FFmpeg", "pthread_create tid_demuxer ret:%d", ret);
+
+    ret = pthread_create(tid_sdl, nullptr, pthread_run_sdl, this);
+    LOGE("FFmpeg", "pthread_create tid_sdl ret:%d", ret);
 }
 
 void player::stop() {
     LOGE("FFmpeg", "stop url:%s", url);
     status = STOPED;
+    pthread_cond_signal(&cond_t_demuxer);
+    pthread_cond_signal(&cond_t_sdl);
 }
 
 void player::release() {

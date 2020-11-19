@@ -19,7 +19,9 @@ public class SwresampleActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        swresample.release();
+        if(swresample!=null) {
+            swresample.release();
+        }
     }
 
     public void onClickInfo(View view) {

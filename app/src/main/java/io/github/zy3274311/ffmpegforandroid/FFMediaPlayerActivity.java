@@ -2,6 +2,7 @@ package io.github.zy3274311.ffmpegforandroid;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.media.MediaMuxer;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
@@ -9,7 +10,7 @@ import android.widget.TextView;
 import io.github.zy3274311.nativeffmpeg.player.FFMediaPlayer;
 
 public class FFMediaPlayerActivity extends AppCompatActivity {
-    private static final String URL = "http://wliveplay.58cdn.com.cn/live/D5kl1329314099867209728.flv";
+    private static final String URL = "http://wliveplay.58cdn.com.cn/live/T1rE1329362680472973313.flv";
     private FFMediaPlayer ffMediaPlayer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
