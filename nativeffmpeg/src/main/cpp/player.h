@@ -4,6 +4,7 @@
 
 #ifndef FFMPEGFORANDROID_PLAYER_H
 #define FFMPEGFORANDROID_PLAYER_H
+#include <queue>
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
@@ -13,6 +14,7 @@ enum PlayerStatus {
 
 class player {
 public:
+    std::deque<AVFrame> avframes;
     PlayerStatus status;
     const char *url = nullptr;
     pthread_t play_tid;

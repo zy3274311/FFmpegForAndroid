@@ -19,36 +19,36 @@ JNIEXPORT jlong JNICALL native_init(JNIEnv *env, jobject thiz) {
     p->init();
     long ptr = reinterpret_cast<long>(p);
     jlong a = ptr;
-    LOGE("FFmpeg", "FFMediaPlayer native_init ptr:%ld", ptr);
+    LOGE("FFmpeg", "native_init ptr:%ld", ptr);
     return a;
 }
 
 JNIEXPORT void JNICALL native_setDataSource(JNIEnv *env, jobject thiz, jlong ptr, jstring url_) {
-    LOGE("FFmpeg", "FFMediaPlayer native_setDataSource ptr:%ld", ptr);
+    LOGE("FFmpeg", "native_setDataSource ptr:%ld", ptr);
     jboolean isCopy = JNI_TRUE;
     const char *url = env->GetStringUTFChars(url_, &isCopy);
     auto *p = reinterpret_cast<player *>(ptr);
     p->setDataSource(url);
-    LOGE("FFmpeg", "FFMediaPlayer native_setDataSource url:%s", url);
+    LOGE("FFmpeg", "native_setDataSource url:%s", url);
 }
 
 
 JNIEXPORT void JNICALL native_play(JNIEnv *env, jobject thiz, jlong ptr) {
-    LOGE("FFmpeg", "FFMediaPlayer native_play ptr:%ld", ptr);
+    LOGE("FFmpeg", "native_play ptr:%ld", ptr);
     auto *p = reinterpret_cast<player *>(ptr);
     p->play();
 }
 
 
 JNIEXPORT void JNICALL native_stop(JNIEnv *env, jobject thiz, jlong ptr) {
-    LOGE("FFmpeg", "FFMediaPlayer native_stop ptr:%ld", ptr);
+    LOGE("FFmpeg", "native_stop ptr:%ld", ptr);
     auto *p = reinterpret_cast<player *>(ptr);
     p->stop();
 }
 
 
 JNIEXPORT void JNICALL native_release(JNIEnv *env, jobject thiz, jlong ptr) {
-    LOGE("FFmpeg", "FFMediaPlayer native_release ptr:%ld", ptr);
+    LOGE("FFmpeg", "native_release ptr:%ld", ptr);
     auto *p = reinterpret_cast<player *>(ptr);
     p->release();
     delete p;
