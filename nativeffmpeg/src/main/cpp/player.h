@@ -14,14 +14,16 @@ enum PlayerStatus {
 
 class player {
 public:
-    std::deque<AVFrame> avframes;
+    pthread_mutex_t avframes_demuxer;
+    std::deque<AVFrame*> avframes;
     PlayerStatus status;
     const char *url = nullptr;
-    pthread_t* tid_demuxer;
+
+    pthread_t tid_demuxer;
     pthread_mutex_t mutex_t_demuxer;
     pthread_cond_t cond_t_demuxer;
 
-    pthread_t* tid_sdl;
+    pthread_t tid_sdl;
     pthread_mutex_t mutex_t_sdl;
     pthread_cond_t cond_t_sdl;
 

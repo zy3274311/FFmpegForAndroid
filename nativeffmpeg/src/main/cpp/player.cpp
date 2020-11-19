@@ -59,7 +59,7 @@ static int open_codec_context(int *stream_idx,
 }
 
 static int
-decode_packet(AVCodecContext *dec, const AVPacket *pkt, std::deque<AVFrame> *avframes) {
+decode_packet(AVCodecContext *dec, const AVPacket *pkt, player *p) {
     int ret = 0;
     // submit the packet to the decoder
     ret = avcodec_send_packet(dec, pkt);
@@ -83,7 +83,9 @@ decode_packet(AVCodecContext *dec, const AVPacket *pkt, std::deque<AVFrame> *avf
             return ret;
         }
         LOGE("FFmpeg", "AVFrame pkt_size:%d", frame->pkt_size);
-        avframes->push_back(*frame);
+        pthread_mutex_trylock(&p->avframes_demuxer);
+        p->avframes.push_back(frame);
+        pthread_mutex_trylock(&p->avframes_demuxer);
     }
     return 0;
 }
@@ -100,7 +102,7 @@ void player::setDataSource(const char *url_) {
 
 void *pthread_run(void *arg) {
     auto *p = reinterpret_cast<player *>(arg);
-    LOGE("FFmpeg", "pthread_run tid_demuxer:%ld", *p->tid_demuxer);
+    LOGE("FFmpeg", "pthread_run tid_demuxer:%ld", p->tid_demuxer);
     AVPacket pkt;
     uint8_t *video_dst_data[4];
     int video_dst_linesize[4];
@@ -115,9 +117,6 @@ void *pthread_run(void *arg) {
     AVStream *audio_stream = nullptr;
     AVFormatContext *fmt_ctx = nullptr;
 
-    time_t t;
-    time(&t);
-    LOGE("FFmpeg", "pthread_run time_t1:%ld", t);
     fmt_ctx = avformat_alloc_context();
     ret = avformat_open_input(&fmt_ctx, p->url, nullptr, nullptr);
     if (ret < 0) {
@@ -126,16 +125,12 @@ void *pthread_run(void *arg) {
         goto end;
     }
 
-    time(&t);
-    LOGE("FFmpeg", "avformat_open_input time_t2:%ld", t);
     ret = avformat_find_stream_info(fmt_ctx, nullptr);
     if (ret < 0) {
         char *errorStr = av_err2str(ret);
         LOGE("FFmpeg", "avformat_find_stream_info ret:%s", errorStr);
         goto end;
     }
-    time(&t);
-    LOGE("FFmpeg", "avformat_find_stream_info time_t3:%ld", t);
     if (open_codec_context(&video_stream_idx, &video_dec_ctx, fmt_ctx, AVMEDIA_TYPE_VIDEO) >= 0) {
         video_stream = fmt_ctx->streams[video_stream_idx];
         /* allocate image where the decoded image will be put */
@@ -163,8 +158,6 @@ void *pthread_run(void *arg) {
         //TODO open error
         goto end;
     }
-    time(&t);
-    LOGE("FFmpeg", "open_codec_context time_t4:%ld", t);
     /* dump input information to stderr */
 //    av_dump_format(fmt_ctx, 0, p->url, 0);
 
@@ -177,8 +170,6 @@ void *pthread_run(void *arg) {
     LOGE("FFmpeg", "audio_stream_idx:%d", audio_stream_idx);
 
     av_init_packet(&pkt);
-    pkt.data = NULL;
-    pkt.size = 0;
 
     while (p->status == PlayerStatus::START) {
         ret = av_read_frame(fmt_ctx, &pkt);
@@ -188,10 +179,10 @@ void *pthread_run(void *arg) {
             break;
         }
         if (pkt.stream_index == video_stream_idx) {
-            ret = decode_packet(video_dec_ctx, &pkt, &p->avframes);
+            ret = decode_packet(video_dec_ctx, &pkt, p);
         }
         if (pkt.stream_index == audio_stream_idx) {
-            ret = decode_packet(audio_dec_ctx, &pkt, &p->avframes);
+            ret = decode_packet(audio_dec_ctx, &pkt, p);
         }
 
         if (ret < 0) {
@@ -219,6 +210,8 @@ void *pthread_run(void *arg) {
     if (audio_dec_ctx) {
         avcodec_free_context(&audio_dec_ctx);
     }
+//    AVPacket *packet = &pkt;
+//    av_packet_free(&packet);
     avformat_close_input(&fmt_ctx);
 //    av_free(video_dst_data);
     LOGE("FFmpeg", "play end");
@@ -231,12 +224,12 @@ void *pthread_run_sdl(void *arg) {
     while (p->status == PlayerStatus::START) {
         int frameSize = p->avframes.size();
         if(frameSize>0){
-            AVFrame *frame = &p->avframes.front();
+            pthread_mutex_trylock(&p->avframes_demuxer);
+            AVFrame *frame = p->avframes.front();
             p->avframes.pop_front();
-
-
             LOGE("FFmpeg", "pthread_run_sdl pkt_size:%d", frame->pkt_size);
-//            av_frame_free(&frame);
+            av_frame_free(&frame);
+            pthread_mutex_unlock(&p->avframes_demuxer);
 
             pthread_cond_signal(&p->cond_t_demuxer);
         } else {
@@ -249,10 +242,10 @@ void player::play() {
     LOGE("FFmpeg", "play url:%s", url);
     status = START;
     int ret;
-    ret = pthread_create(tid_demuxer, nullptr, pthread_run, this);
+    ret = pthread_create(&tid_demuxer, nullptr, pthread_run, this);
     LOGE("FFmpeg", "pthread_create tid_demuxer ret:%d", ret);
 
-    ret = pthread_create(tid_sdl, nullptr, pthread_run_sdl, this);
+    ret = pthread_create(&tid_sdl, nullptr, pthread_run_sdl, this);
     LOGE("FFmpeg", "pthread_create tid_sdl ret:%d", ret);
 }
 
