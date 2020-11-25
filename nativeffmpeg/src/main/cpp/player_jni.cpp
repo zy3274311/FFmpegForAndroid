@@ -3,6 +3,7 @@
 //
 
 #include <jni.h>
+#include <android/native_window_jni.h>
 #include "ndk_log.h"
 #include "player.h"
 
@@ -21,6 +22,12 @@ JNIEXPORT jlong JNICALL native_init(JNIEnv *env, jobject thiz) {
     jlong a = ptr;
     LOGE("FFmpeg", "native_init ptr:%ld", ptr);
     return a;
+}
+
+JNIEXPORT void JNICALL native_setSurface(JNIEnv *env, jobject thiz, jlong ptr, jobject surface) {
+    auto *p = reinterpret_cast<player *>(ptr);
+    LOGE("FFmpeg", "native_setSurface ptr:%ld", ptr);
+    p->window = ANativeWindow_fromSurface(env, surface);
 }
 
 JNIEXPORT void JNICALL native_setDataSource(JNIEnv *env, jobject thiz, jlong ptr, jstring url_) {

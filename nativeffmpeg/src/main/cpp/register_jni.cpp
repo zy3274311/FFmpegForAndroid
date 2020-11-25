@@ -1,12 +1,11 @@
 #include <jni.h>
-#include "ndk_log.h"
-
 
 extern "C" {
 #include "swresample_jni.h"
 #include "avformat_jni.h"
 #include "avutil_jni.h"
 #include "player_jni.h"
+#include "ndk_log.h"
 
 int Load_Swresample(JNIEnv *env);
 int Load_AvFormat(JNIEnv *env);
@@ -106,6 +105,7 @@ int Load_Player(JNIEnv *env) {
     // Register your class' native methods.
     static const JNINativeMethod methods[] = {
             {"_init",          "()J",                    (jlong *) (native_init)},
+            {"_setSurface", "(JLandroid/view/Surface;)V", (void *) (native_setSurface)},
             {"_setDataSource", "(JLjava/lang/String;)V", (void *) (native_setDataSource)},
             {"_play",          "(J)V",                   (void *) (native_play)},
             {"_stop",          "(J)V",                   (void *) (native_stop)},

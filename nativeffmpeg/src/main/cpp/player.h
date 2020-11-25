@@ -5,6 +5,12 @@
 #ifndef FFMPEGFORANDROID_PLAYER_H
 #define FFMPEGFORANDROID_PLAYER_H
 #include <queue>
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#include <GLES3/gl3.h>
+#include <GLES3/gl3ext.h>
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
@@ -14,6 +20,7 @@ enum PlayerStatus {
 
 class player {
 public:
+    ANativeWindow *window;
     pthread_mutex_t avframes_demuxer;
     std::deque<AVFrame*> avframes;
     PlayerStatus status;

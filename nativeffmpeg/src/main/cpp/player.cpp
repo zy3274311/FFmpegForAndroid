@@ -100,9 +100,9 @@ void player::setDataSource(const char *url_) {
     url = url_;
 }
 
-void *pthread_run(void *arg) {
+void *pthread_run_demuxer(void *arg) {
     auto *p = reinterpret_cast<player *>(arg);
-    LOGE("FFmpeg", "pthread_run tid_demuxer:%ld", p->tid_demuxer);
+    LOGE("FFmpeg", "pthread_run_demuxer tid_demuxer:%ld", p->tid_demuxer);
     AVPacket pkt;
     uint8_t *video_dst_data[4];
     int video_dst_linesize[4];
@@ -147,7 +147,7 @@ void *pthread_run(void *arg) {
             goto end;
         }
         video_dst_bufsize = ret;
-        LOGE("FFmpeg", "pthread_run video_dst_bufsize:%d", video_dst_bufsize);
+        LOGE("FFmpeg", "pthread_run_demuxer video_dst_bufsize:%d", video_dst_bufsize);
     } else {
         //TODO open error
         goto end;
@@ -221,6 +221,59 @@ void *pthread_run(void *arg) {
 
 void *pthread_run_sdl(void *arg) {
     auto *p = reinterpret_cast<player *>(arg);
+
+    const EGLint attribs[] = {
+            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+            EGL_BLUE_SIZE, 8,
+            EGL_GREEN_SIZE, 8,
+            EGL_RED_SIZE, 8,
+            EGL_NONE
+    };
+    EGLint numConfigs;
+    EGLConfig config = nullptr;
+    EGLint w, h;
+
+    EGLDisplay mEGLDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    eglInitialize(mEGLDisplay, nullptr, nullptr);
+    EGLBoolean success = eglChooseConfig(mEGLDisplay, attribs, nullptr, 0, &numConfigs);
+    std::unique_ptr<EGLConfig[]> supportedConfigs(new EGLConfig[numConfigs]);
+    eglChooseConfig(mEGLDisplay, attribs, supportedConfigs.get(), numConfigs, &numConfigs);
+
+    auto i = 0;
+    for (; i < numConfigs; i++) {
+        auto& cfg = supportedConfigs[i];
+        EGLint r, g, b, d;
+        if (eglGetConfigAttrib(mEGLDisplay, cfg, EGL_RED_SIZE, &r)   &&
+            eglGetConfigAttrib(mEGLDisplay, cfg, EGL_GREEN_SIZE, &g) &&
+            eglGetConfigAttrib(mEGLDisplay, cfg, EGL_BLUE_SIZE, &b)  &&
+            eglGetConfigAttrib(mEGLDisplay, cfg, EGL_DEPTH_SIZE, &d) &&
+            r == 8 && g == 8 && b == 8 && d == 0 ) {
+
+            config = supportedConfigs[i];
+            break;
+        }
+    }
+    if (i == numConfigs) {
+        config = supportedConfigs[0];
+    }
+
+    if (config == nullptr) {
+        LOGE("FFmpeg", "Unable to initialize EGLConfig");
+    }
+
+    EGLSurface eglSurface = eglCreateWindowSurface(mEGLDisplay, config, p->window, nullptr);
+    EGLContext eglContext = eglCreateContext(mEGLDisplay, config, nullptr, nullptr);
+
+    if (eglMakeCurrent(mEGLDisplay, eglSurface, eglSurface, eglContext) == EGL_FALSE) {
+        LOGE("FFmpeg", "Unable to eglMakeCurrent");
+    }
+
+    eglQuerySurface(mEGLDisplay, eglSurface, EGL_WIDTH, &w);
+    eglQuerySurface(mEGLDisplay, eglSurface, EGL_HEIGHT, &h);
+
+    LOGE("FFmpeg", "eglQuerySurface w:%d", w);
+    LOGE("FFmpeg", "eglQuerySurface h:%d", h);
+
     while (p->status == PlayerStatus::START) {
         int frameSize = p->avframes.size();
         if(frameSize>0){
@@ -236,13 +289,14 @@ void *pthread_run_sdl(void *arg) {
             pthread_cond_wait(&p->cond_t_sdl, &p->mutex_t_sdl);
         }
     }
+    LOGE("FFmpeg", "pthread_run_sdl end");
     return nullptr;
 }
 void player::play() {
     LOGE("FFmpeg", "play url:%s", url);
     status = START;
     int ret;
-    ret = pthread_create(&tid_demuxer, nullptr, pthread_run, this);
+    ret = pthread_create(&tid_demuxer, nullptr, pthread_run_demuxer, this);
     LOGE("FFmpeg", "pthread_create tid_demuxer ret:%d", ret);
 
     ret = pthread_create(&tid_sdl, nullptr, pthread_run_sdl, this);
@@ -260,6 +314,8 @@ void player::release() {
     LOGE("FFmpeg", "release url:%s", url);
     LOGE("FFmpeg", "release avframes:%d", avframes.size());
     status = RELEASE;
+    pthread_cond_signal(&cond_t_demuxer);
+    pthread_cond_signal(&cond_t_sdl);
 }
 
 player::player() {

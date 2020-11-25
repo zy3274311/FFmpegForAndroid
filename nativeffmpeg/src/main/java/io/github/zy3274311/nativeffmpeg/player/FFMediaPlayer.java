@@ -1,5 +1,7 @@
 package io.github.zy3274311.nativeffmpeg.player;
 
+import android.view.Surface;
+
 /**
  * Created by zhangying62 on 2020/11/5.
  */
@@ -8,6 +10,13 @@ public class FFMediaPlayer {
 
     public FFMediaPlayer() {
         ptr = _init();
+    }
+
+    public void setSurface(Surface surface) throws Exception {
+        if(surface==null) {
+            throw new Exception("Surface is null");
+        }
+        _setSurface(ptr, surface);
     }
 
     public void setDataSource(String url) {
@@ -28,6 +37,8 @@ public class FFMediaPlayer {
 
 
     private native long _init();
+
+    private native void _setSurface(long ptr, Surface surface);
 
     private native void _setDataSource(long ptr, String url);
 

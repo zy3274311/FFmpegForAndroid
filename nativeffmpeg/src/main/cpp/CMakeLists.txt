@@ -90,6 +90,8 @@ target_link_libraries( # Specifies the target library.
         avutil
         swresample
         avcodec
+        EGL
+        android
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib} )
