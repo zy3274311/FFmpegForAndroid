@@ -69,13 +69,13 @@ decode_packet(AVCodecContext *dec, const AVPacket *pkt, player *p) {
     }
     // get all the available frames from the decoder
     while (ret >= 0) {
-        AVFrame* frame = av_frame_alloc();
+        AVFrame *frame = av_frame_alloc();
         ret = avcodec_receive_frame(dec, frame);
         if (ret < 0) {
             LOGE("FFmpeg", "Error during decoding (%s)", av_err2str(ret));
             // those two return values are special and mean there is no output
             // frame available, but there were no errors during decoding
-            if (ret == AVERROR_EOF || ret == AVERROR(EAGAIN)){
+            if (ret == AVERROR_EOF || ret == AVERROR(EAGAIN)) {
                 av_frame_free(&frame);
                 return 0;
             }
@@ -84,7 +84,7 @@ decode_packet(AVCodecContext *dec, const AVPacket *pkt, player *p) {
         }
         LOGE("FFmpeg", "AVFrame pkt_size:%d", frame->pkt_size);
         pthread_mutex_trylock(&p->avframes_demuxer);
-        p->avframes.push_back(frame);
+        p->vframes.push_back(frame);
         pthread_mutex_trylock(&p->avframes_demuxer);
     }
     return 0;
@@ -92,7 +92,7 @@ decode_packet(AVCodecContext *dec, const AVPacket *pkt, player *p) {
 
 void player::init() {
     LOGE("FFmpeg", "init");
-    LOGE("FFmpeg", "init avframes:%d", avframes.size());
+    LOGE("FFmpeg", "init vframes:%d", vframes.size());
     status = INIT;
 }
 
@@ -182,7 +182,7 @@ void *pthread_run_demuxer(void *arg) {
             ret = decode_packet(video_dec_ctx, &pkt, p);
         }
         if (pkt.stream_index == audio_stream_idx) {
-            ret = decode_packet(audio_dec_ctx, &pkt, p);
+//            ret = decode_packet(audio_dec_ctx, &pkt, p);
         }
 
         if (ret < 0) {
@@ -192,8 +192,8 @@ void *pthread_run_demuxer(void *arg) {
         }
 
         pthread_cond_signal(&p->cond_t_sdl);
-        int frameSize = p->avframes.size();
-        if(frameSize>=30) {
+        int frameSize = p->vframes.size();
+        if (frameSize >= 30) {
             pthread_cond_wait(&p->cond_t_demuxer, &p->mutex_t_demuxer);
         }
         LOGE("FFmpeg", "av_read_frame size:%d", frameSize);
@@ -241,14 +241,17 @@ void *pthread_run_sdl(void *arg) {
 
     auto i = 0;
     for (; i < numConfigs; i++) {
-        auto& cfg = supportedConfigs[i];
+        auto &cfg = supportedConfigs[i];
         EGLint r, g, b, d;
-        if (eglGetConfigAttrib(mEGLDisplay, cfg, EGL_RED_SIZE, &r)   &&
+        if (eglGetConfigAttrib(mEGLDisplay, cfg, EGL_RED_SIZE, &r) &&
             eglGetConfigAttrib(mEGLDisplay, cfg, EGL_GREEN_SIZE, &g) &&
-            eglGetConfigAttrib(mEGLDisplay, cfg, EGL_BLUE_SIZE, &b)  &&
+            eglGetConfigAttrib(mEGLDisplay, cfg, EGL_BLUE_SIZE, &b) &&
             eglGetConfigAttrib(mEGLDisplay, cfg, EGL_DEPTH_SIZE, &d) &&
-            r == 8 && g == 8 && b == 8 && d == 0 ) {
-
+            r == 8 && g == 8 && b == 8 && d == 0) {
+            LOGE("FFmpeg", "eglQuerySurface r:%d", r);
+            LOGE("FFmpeg", "eglQuerySurface g:%d", g);
+            LOGE("FFmpeg", "eglQuerySurface b:%d", b);
+            LOGE("FFmpeg", "eglQuerySurface d:%d", d);
             config = supportedConfigs[i];
             break;
         }
@@ -275,23 +278,31 @@ void *pthread_run_sdl(void *arg) {
     LOGE("FFmpeg", "eglQuerySurface h:%d", h);
 
     while (p->status == PlayerStatus::START) {
-        int frameSize = p->avframes.size();
-        if(frameSize>0){
+        int frameSize = p->vframes.size();
+        if (frameSize > 0) {
             pthread_mutex_trylock(&p->avframes_demuxer);
-            AVFrame *frame = p->avframes.front();
-            p->avframes.pop_front();
-            LOGE("FFmpeg", "pthread_run_sdl pkt_size:%d", frame->pkt_size);
+            AVFrame *frame = p->vframes.front();
+            p->vframes.pop_front();
+
+            LOGE("FFmpeg", "pthread_run_sdl AVFrame format:%d", frame->format);
             av_frame_free(&frame);
             pthread_mutex_unlock(&p->avframes_demuxer);
-
+            glClearColor(0,255,0,0);
+            glClear(GL_COLOR_BUFFER_BIT);
+            eglSwapBuffers(mEGLDisplay, eglSurface);
             pthread_cond_signal(&p->cond_t_demuxer);
         } else {
             pthread_cond_wait(&p->cond_t_sdl, &p->mutex_t_sdl);
         }
     }
+    eglMakeCurrent(mEGLDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglDestroyContext(mEGLDisplay, eglContext);
+    eglDestroySurface(mEGLDisplay, eglSurface);
+    eglTerminate(mEGLDisplay);
     LOGE("FFmpeg", "pthread_run_sdl end");
     return nullptr;
 }
+
 void player::play() {
     LOGE("FFmpeg", "play url:%s", url);
     status = START;
@@ -312,7 +323,7 @@ void player::stop() {
 
 void player::release() {
     LOGE("FFmpeg", "release url:%s", url);
-    LOGE("FFmpeg", "release avframes:%d", avframes.size());
+    LOGE("FFmpeg", "release vframes:%d", vframes.size());
     status = RELEASE;
     pthread_cond_signal(&cond_t_demuxer);
     pthread_cond_signal(&cond_t_sdl);

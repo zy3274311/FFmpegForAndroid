@@ -14,6 +14,7 @@
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
 enum PlayerStatus {
     INIT, PREPARE, START, RESUME, PAUSE, STOPED, RELEASE
 };
@@ -22,7 +23,8 @@ class player {
 public:
     ANativeWindow *window;
     pthread_mutex_t avframes_demuxer;
-    std::deque<AVFrame*> avframes;
+    std::deque<AVFrame*> vframes;
+    std::deque<AVFrame*> aframes;
     PlayerStatus status;
     const char *url = nullptr;
 

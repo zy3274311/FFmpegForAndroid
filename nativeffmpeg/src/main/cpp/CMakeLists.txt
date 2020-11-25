@@ -91,6 +91,7 @@ target_link_libraries( # Specifies the target library.
         swresample
         avcodec
         EGL
+        GLESv2
         android
         # Links the target library to the log library
         # included in the NDK.
