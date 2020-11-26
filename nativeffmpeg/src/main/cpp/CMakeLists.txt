@@ -60,7 +60,9 @@ add_library( # Sets the name of the library.
         avutil_jni.cpp
         avformat_jni.cpp
         player_jni.cpp
-        player.cpp)
+        player.cpp
+        android/glenv.cpp
+        android/gles.cpp)
 
 # add ffmpeg include
 target_include_directories(ffmpeg PUBLIC

@@ -12,7 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import io.github.zy3274311.nativeffmpeg.player.FFMediaPlayer;
 
 public class FFMediaPlayerActivity extends AppCompatActivity {
-    private static final String URL = "http://wliveplay.58cdn.com.cn/live/2wA11331567955409940480.flv";
+    private static final String URL = "http://wliveplay.58cdn.com.cn/live/YLte1331938732026167296.flv";
     private FFMediaPlayer ffMediaPlayer;
     private SurfaceView player_surface;
     @Override

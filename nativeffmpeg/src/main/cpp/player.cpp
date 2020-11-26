@@ -4,6 +4,7 @@
 
 #include "player.h"
 #include "ndk_log.h"
+#include "android/glenv.h"
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
 #include <pthread.h>
@@ -222,60 +223,11 @@ void *pthread_run_demuxer(void *arg) {
 void *pthread_run_sdl(void *arg) {
     auto *p = reinterpret_cast<player *>(arg);
 
-    const EGLint attribs[] = {
-            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-            EGL_BLUE_SIZE, 8,
-            EGL_GREEN_SIZE, 8,
-            EGL_RED_SIZE, 8,
-            EGL_NONE
-    };
-    EGLint numConfigs;
-    EGLConfig config = nullptr;
-    EGLint w, h;
-
-    EGLDisplay mEGLDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    eglInitialize(mEGLDisplay, nullptr, nullptr);
-    EGLBoolean success = eglChooseConfig(mEGLDisplay, attribs, nullptr, 0, &numConfigs);
-    std::unique_ptr<EGLConfig[]> supportedConfigs(new EGLConfig[numConfigs]);
-    eglChooseConfig(mEGLDisplay, attribs, supportedConfigs.get(), numConfigs, &numConfigs);
-
-    auto i = 0;
-    for (; i < numConfigs; i++) {
-        auto &cfg = supportedConfigs[i];
-        EGLint r, g, b, d;
-        if (eglGetConfigAttrib(mEGLDisplay, cfg, EGL_RED_SIZE, &r) &&
-            eglGetConfigAttrib(mEGLDisplay, cfg, EGL_GREEN_SIZE, &g) &&
-            eglGetConfigAttrib(mEGLDisplay, cfg, EGL_BLUE_SIZE, &b) &&
-            eglGetConfigAttrib(mEGLDisplay, cfg, EGL_DEPTH_SIZE, &d) &&
-            r == 8 && g == 8 && b == 8 && d == 0) {
-            LOGE("FFmpeg", "eglQuerySurface r:%d", r);
-            LOGE("FFmpeg", "eglQuerySurface g:%d", g);
-            LOGE("FFmpeg", "eglQuerySurface b:%d", b);
-            LOGE("FFmpeg", "eglQuerySurface d:%d", d);
-            config = supportedConfigs[i];
-            break;
-        }
-    }
-    if (i == numConfigs) {
-        config = supportedConfigs[0];
-    }
-
-    if (config == nullptr) {
-        LOGE("FFmpeg", "Unable to initialize EGLConfig");
-    }
-
-    EGLSurface eglSurface = eglCreateWindowSurface(mEGLDisplay, config, p->window, nullptr);
-    EGLContext eglContext = eglCreateContext(mEGLDisplay, config, nullptr, nullptr);
-
-    if (eglMakeCurrent(mEGLDisplay, eglSurface, eglSurface, eglContext) == EGL_FALSE) {
-        LOGE("FFmpeg", "Unable to eglMakeCurrent");
-    }
-
-    eglQuerySurface(mEGLDisplay, eglSurface, EGL_WIDTH, &w);
-    eglQuerySurface(mEGLDisplay, eglSurface, EGL_HEIGHT, &h);
-
-    LOGE("FFmpeg", "eglQuerySurface w:%d", w);
-    LOGE("FFmpeg", "eglQuerySurface h:%d", h);
+    glenv egl = glenv(p->window);
+    egl.init();
+    bool firstFrame = true;
+    uint8_t *pointers[4];
+    int linesizes[4];
 
     while (p->status == PlayerStatus::START) {
         int frameSize = p->vframes.size();
@@ -283,22 +235,27 @@ void *pthread_run_sdl(void *arg) {
             pthread_mutex_trylock(&p->avframes_demuxer);
             AVFrame *frame = p->vframes.front();
             p->vframes.pop_front();
-
             LOGE("FFmpeg", "pthread_run_sdl AVFrame format:%d", frame->format);
             av_frame_free(&frame);
             pthread_mutex_unlock(&p->avframes_demuxer);
-            glClearColor(0,255,0,0);
-            glClear(GL_COLOR_BUFFER_BIT);
-            eglSwapBuffers(mEGLDisplay, eglSurface);
             pthread_cond_signal(&p->cond_t_demuxer);
+
+            if(firstFrame){
+                firstFrame = false;
+//                av_image_alloc(pointers, linesizes, frame->width, frame->height, AV_PIX_FMT_RGB24, 1);
+//                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame->width, frame->height, 0, GL_RGB, GL_UNSIGNED_BYTE,pointers[0]);
+            }
+
+            glClearColor(1.0f,1.0f,0,1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            egl.swap();
+
         } else {
             pthread_cond_wait(&p->cond_t_sdl, &p->mutex_t_sdl);
         }
     }
-    eglMakeCurrent(mEGLDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-    eglDestroyContext(mEGLDisplay, eglContext);
-    eglDestroySurface(mEGLDisplay, eglSurface);
-    eglTerminate(mEGLDisplay);
+    egl.free();
     LOGE("FFmpeg", "pthread_run_sdl end");
     return nullptr;
 }
