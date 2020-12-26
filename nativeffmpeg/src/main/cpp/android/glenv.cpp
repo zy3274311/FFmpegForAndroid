@@ -49,9 +49,10 @@ void glenv::init() {
         LOGE("FFmpeg", "Unable to initialize EGLConfig");
     }
 
-    eglSurface = eglCreateWindowSurface(mEGLDisplay, config, window, nullptr);
-    eglContext = eglCreateContext(mEGLDisplay, config, nullptr, nullptr);
+    const EGLint attrib_list[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+    eglContext = eglCreateContext(mEGLDisplay, config, nullptr, attrib_list);
 
+    eglSurface = eglCreateWindowSurface(mEGLDisplay, config, window, nullptr);
     if (eglMakeCurrent(mEGLDisplay, eglSurface, eglSurface, eglContext) == EGL_FALSE) {
         LOGE("FFmpeg", "Unable to eglMakeCurrent");
     }

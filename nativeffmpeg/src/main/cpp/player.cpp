@@ -5,6 +5,7 @@
 #include "player.h"
 #include "ndk_log.h"
 #include "android/glenv.h"
+#include "android/glrender.h"
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
 #include <pthread.h>
@@ -111,13 +112,11 @@ void *pthread_run_demuxer(void *arg) {
     int audio_stream_idx;
     int ret;
     int video_dst_bufsize;
-
     AVCodecContext *video_dec_ctx = nullptr;
     AVCodecContext *audio_dec_ctx = nullptr;
     AVStream *video_stream = nullptr;
     AVStream *audio_stream = nullptr;
     AVFormatContext *fmt_ctx = nullptr;
-
     fmt_ctx = avformat_alloc_context();
     ret = avformat_open_input(&fmt_ctx, p->url, nullptr, nullptr);
     if (ret < 0) {
@@ -125,7 +124,6 @@ void *pthread_run_demuxer(void *arg) {
         LOGE("FFmpeg", "avformat_open_input ret:%s", errorStr);
         goto end;
     }
-
     ret = avformat_find_stream_info(fmt_ctx, nullptr);
     if (ret < 0) {
         char *errorStr = av_err2str(ret);
@@ -161,17 +159,13 @@ void *pthread_run_demuxer(void *arg) {
     }
     /* dump input information to stderr */
 //    av_dump_format(fmt_ctx, 0, p->url, 0);
-
     if (!audio_stream && !video_stream) {
         LOGE("FFmpeg", "(!audio_stream && !video_stream");
         goto end;
     }
-
     LOGE("FFmpeg", "video_stream_idx:%d", video_stream_idx);
     LOGE("FFmpeg", "audio_stream_idx:%d", audio_stream_idx);
-
     av_init_packet(&pkt);
-
     while (p->status == PlayerStatus::START) {
         ret = av_read_frame(fmt_ctx, &pkt);
         if (ret < 0) {
@@ -185,13 +179,11 @@ void *pthread_run_demuxer(void *arg) {
         if (pkt.stream_index == audio_stream_idx) {
 //            ret = decode_packet(audio_dec_ctx, &pkt, p);
         }
-
         if (ret < 0) {
             char *errorStr = av_err2str(ret);
             LOGE("FFmpeg", "decode_packet errorStr:%s", errorStr);
             break;
         }
-
         pthread_cond_signal(&p->cond_t_sdl);
         int frameSize = p->vframes.size();
         if (frameSize >= 30) {
@@ -200,8 +192,6 @@ void *pthread_run_demuxer(void *arg) {
         LOGE("FFmpeg", "av_read_frame size:%d", frameSize);
         av_packet_unref(&pkt);
     }
-
-
     LOGE("FFmpeg", "play succuss");
     end:
     //释放音视频解码器
@@ -219,12 +209,13 @@ void *pthread_run_demuxer(void *arg) {
     return nullptr;
 }
 
-
 void *pthread_run_sdl(void *arg) {
     auto *p = reinterpret_cast<player *>(arg);
 
     glenv egl = glenv(p->window);
     egl.init();
+    glrender render{};
+    render.init();
     bool firstFrame = true;
     uint8_t *pointers[4];
     int linesizes[4];
@@ -236,25 +227,23 @@ void *pthread_run_sdl(void *arg) {
             AVFrame *frame = p->vframes.front();
             p->vframes.pop_front();
             LOGE("FFmpeg", "pthread_run_sdl AVFrame format:%d", frame->format);
-            av_frame_free(&frame);
             pthread_mutex_unlock(&p->avframes_demuxer);
             pthread_cond_signal(&p->cond_t_demuxer);
-
             if(firstFrame){
                 firstFrame = false;
-//                av_image_alloc(pointers, linesizes, frame->width, frame->height, AV_PIX_FMT_RGB24, 1);
-//                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame->width, frame->height, 0, GL_RGB, GL_UNSIGNED_BYTE,pointers[0]);
+                av_image_alloc(pointers, linesizes, frame->width, frame->height, AV_PIX_FMT_RGB24, 1);
             }
-
             glClearColor(1.0f,1.0f,0,1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
+            render.render(frame->width, frame->height, frame->data);
             egl.swap();
-
+            av_frame_free(&frame);
         } else {
             pthread_cond_wait(&p->cond_t_sdl, &p->mutex_t_sdl);
         }
     }
+    render.free();
     egl.free();
     LOGE("FFmpeg", "pthread_run_sdl end");
     return nullptr;
@@ -284,6 +273,9 @@ void player::release() {
     status = RELEASE;
     pthread_cond_signal(&cond_t_demuxer);
     pthread_cond_signal(&cond_t_sdl);
+    pthread_join(tid_demuxer,nullptr);
+    pthread_join(tid_sdl,nullptr);
+    LOGE("FFmpeg", "release end");
 }
 
 player::player() {

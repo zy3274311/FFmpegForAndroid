@@ -5,7 +5,6 @@
 #ifndef FFMPEGFORANDROID_GLENV_H
 #define FFMPEGFORANDROID_GLENV_H
 #include <EGL/egl.h>
-#include <EGL/eglext.h>
 class glenv {
 private:
     ANativeWindow *window;

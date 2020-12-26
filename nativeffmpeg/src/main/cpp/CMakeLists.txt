@@ -62,7 +62,7 @@ add_library( # Sets the name of the library.
         player_jni.cpp
         player.cpp
         android/glenv.cpp
-        android/gles.cpp)
+        android/glrender.cpp)
 
 # add ffmpeg include
 target_include_directories(ffmpeg PUBLIC
