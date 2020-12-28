@@ -217,8 +217,7 @@ void *pthread_run_sdl(void *arg) {
     glrender render{};
     render.init();
     bool firstFrame = true;
-    uint8_t *pointers[4];
-    int linesizes[4];
+    int texture;
 
     while (p->status == PlayerStatus::START) {
         int frameSize = p->vframes.size();
@@ -231,12 +230,13 @@ void *pthread_run_sdl(void *arg) {
             pthread_cond_signal(&p->cond_t_demuxer);
             if(firstFrame){
                 firstFrame = false;
-                av_image_alloc(pointers, linesizes, frame->width, frame->height, AV_PIX_FMT_RGB24, 1);
+                texture = render.createTexture(frame->width, frame->height, frame->data);
+            } else {
+                render.updateTexture(texture, frame->width, frame->height, frame->data);
             }
             glClearColor(1.0f,1.0f,0,1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
-
-            render.render(frame->width, frame->height, frame->data);
+            render.render(texture);
             egl.swap();
             av_frame_free(&frame);
         } else {
