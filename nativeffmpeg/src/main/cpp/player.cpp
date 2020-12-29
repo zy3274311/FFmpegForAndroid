@@ -218,6 +218,8 @@ void *pthread_run_sdl(void *arg) {
     render.init();
     bool firstFrame = true;
     int texture;
+    struct SwsContext *sws_ctx;
+    AVFrame *gl_frame = av_frame_alloc();
 
     while (p->status == PlayerStatus::START) {
         int frameSize = p->vframes.size();
@@ -225,17 +227,34 @@ void *pthread_run_sdl(void *arg) {
             pthread_mutex_trylock(&p->avframes_demuxer);
             AVFrame *frame = p->vframes.front();
             p->vframes.pop_front();
+            LOGE("FFmpeg", "pthread_run_sdl AVFrame width:%d", frame->width);
+            LOGE("FFmpeg", "pthread_run_sdl AVFrame height:%d", frame->height);
+            LOGE("FFmpeg", "pthread_run_sdl AVFrame AV_PIX_FMT_YUV420P:%d", AV_PIX_FMT_YUV420P);
             LOGE("FFmpeg", "pthread_run_sdl AVFrame format:%d", frame->format);
+            LOGE("FFmpeg", "pthread_run_sdl AVFrame linesize[0]:%d", frame->linesize[0]);
+            LOGE("FFmpeg", "pthread_run_sdl AVFrame linesize[1]:%d", frame->linesize[1]);
+            LOGE("FFmpeg", "pthread_run_sdl AVFrame linesize[2]:%d", frame->linesize[2]);
+            LOGE("FFmpeg", "pthread_run_sdl AVFrame linesize[3]:%d", frame->linesize[3]);
             pthread_mutex_unlock(&p->avframes_demuxer);
             pthread_cond_signal(&p->cond_t_demuxer);
+            //TODO YUV convert to RGB data
             if(firstFrame){
                 firstFrame = false;
-                texture = render.createTexture(frame->width, frame->height, frame->data);
+                sws_ctx = sws_getContext(
+                        frame->width,
+                        frame->height,
+                        static_cast<AVPixelFormat>(frame->format),
+                        frame->width,
+                        frame->height,
+                        AV_PIX_FMT_RGB24,
+                        SWS_BICUBIC, nullptr, nullptr, nullptr);
+
+                sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, gl_frame->data, gl_frame->linesize);
+                texture = render.createTexture(frame->width, frame->height, gl_frame->data[0]);
             } else {
-                render.updateTexture(texture, frame->width, frame->height, frame->data);
+                sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, gl_frame->data, gl_frame->linesize);
+                render.updateTexture(texture, frame->width, frame->height, gl_frame->data[0]);
             }
-            glClearColor(1.0f,1.0f,0,1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
             render.render(texture);
             egl.swap();
             av_frame_free(&frame);
@@ -245,6 +264,9 @@ void *pthread_run_sdl(void *arg) {
     }
     render.free();
     egl.free();
+    if(sws_ctx){
+        sws_freeContext(sws_ctx);
+    }
     LOGE("FFmpeg", "pthread_run_sdl end");
     return nullptr;
 }

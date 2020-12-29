@@ -51,7 +51,6 @@ void glrender::init() {
     aTextureCoord = glGetAttribLocation(program, "aTextureCoord");
     uMVPMatrix = glGetUniformLocation(program, "uMVPMatrix");
     uTexMatrix = glGetUniformLocation(program, "uTexMatrix");
-    mTextureTarget = GL_TEXTURE_2D;
 
 
 //    int uKernel = glGetUniformLocation(program, "uKernel");
@@ -77,11 +76,10 @@ void glrender::init() {
 void glrender::render(int texture) {
     glUseProgram(program);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(mTextureTarget, texture);
-
+    glBindTexture(GL_TEXTURE_2D, texture);
 
     glUniformMatrix4fv(uMVPMatrix, 1, false, mvpMatrix);
-    glUniformMatrix4fv(uMVPMatrix, 1, false, texMatrix);
+    glUniformMatrix4fv(uTexMatrix, 1, false, texMatrix);
     glEnableVertexAttribArray(aPosition);
     glEnableVertexAttribArray(aTextureCoord);
     glVertexAttribPointer(aPosition, coordsPerVertex,
@@ -92,7 +90,7 @@ void glrender::render(int texture) {
 
     glDisableVertexAttribArray(aPosition);
     glDisableVertexAttribArray(aTextureCoord);
-    glBindTexture(mTextureTarget, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
     glUseProgram(0);
 }
 
@@ -103,20 +101,20 @@ void glrender::free() const {
 int glrender::createTexture(int width, int height, const void *pixels) const {
     GLuint textures[1];
     glGenTextures(1, textures);
-    glBindTexture(mTextureTarget, textures[0]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameterf(mTextureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameterf(mTextureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameterf(mTextureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameterf(mTextureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(mTextureTarget, 0);
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
     return textures[0];
 }
 
 void glrender::updateTexture(int texture, int width, int height, const void *pixels) const {
-    glBindTexture(mTextureTarget, texture);
-    glTexSubImage2D(mTextureTarget, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glBindTexture(mTextureTarget, 0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void glrender::setIdentityM(float *sm, int smOffset) {

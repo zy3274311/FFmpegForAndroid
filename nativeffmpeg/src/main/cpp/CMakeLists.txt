@@ -17,10 +17,10 @@ set(distribution_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../distribution)
 add_library(avutil SHARED IMPORTED)
 set_target_properties(avutil PROPERTIES IMPORTED_LOCATION
         ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavutil.so)
-#
-#add_library(libswscale SHARED IMPORTED)
-#set_target_properties(libswscale PROPERTIES IMPORTED_LOCATION
-#        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libswscale.so)
+
+add_library(swscale SHARED IMPORTED)
+set_target_properties(swscale PROPERTIES IMPORTED_LOCATION
+        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libswscale.so)
 
 add_library(avformat SHARED IMPORTED)
 set_target_properties(avformat PROPERTIES IMPORTED_LOCATION
@@ -88,6 +88,7 @@ find_library( # Sets the name of the path variable.
 target_link_libraries( # Specifies the target library.
         ffmpeg
 
+        swscale
         avformat
         avutil
         swresample

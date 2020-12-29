@@ -14,7 +14,6 @@ private:
     int aTextureCoord;
     int uMVPMatrix;
     int uTexMatrix;
-    int mTextureTarget;
 
     float mvpMatrix[16];//uMVPMatrix
     float texMatrix[16];//uTexMatrix
