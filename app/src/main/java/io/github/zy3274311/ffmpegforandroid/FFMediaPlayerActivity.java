@@ -1,5 +1,7 @@
 package io.github.zy3274311.ffmpegforandroid;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -12,7 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import io.github.zy3274311.nativeffmpeg.player.FFMediaPlayer;
 
 public class FFMediaPlayerActivity extends AppCompatActivity {
-    private static final String URL = "http://wliveplay.58cdn.com.cn/live/nqNw1343817380454735872.flv";
+    private static final String URL = "http://wliveplay.58cdn.com.cn/live/3DiI1344105153266991104.flv";
     private FFMediaPlayer ffMediaPlayer;
     private SurfaceView player_surface;
     @Override

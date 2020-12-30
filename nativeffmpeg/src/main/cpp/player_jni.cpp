@@ -53,7 +53,6 @@ JNIEXPORT void JNICALL native_stop(JNIEnv *env, jobject thiz, jlong ptr) {
     p->stop();
 }
 
-
 JNIEXPORT void JNICALL native_release(JNIEnv *env, jobject thiz, jlong ptr) {
     LOGE("FFmpeg", "native_release ptr:%ld", ptr);
     auto *p = reinterpret_cast<player *>(ptr);

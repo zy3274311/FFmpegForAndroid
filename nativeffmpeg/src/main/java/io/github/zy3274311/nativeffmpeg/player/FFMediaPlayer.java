@@ -1,6 +1,11 @@
 package io.github.zy3274311.nativeffmpeg.player;
 
+import android.graphics.Bitmap;
+import android.util.Log;
 import android.view.Surface;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 
 /**
  * Created by zhangying62 on 2020/11/5.
@@ -22,6 +27,7 @@ public class FFMediaPlayer {
     public void setDataSource(String url) {
         _setDataSource(ptr, url);
     }
+
 
     public void play() {
         _play(ptr);
@@ -47,4 +53,5 @@ public class FFMediaPlayer {
     private native void _stop(long ptr);
 
     private native void _release(long ptr);
+
 }

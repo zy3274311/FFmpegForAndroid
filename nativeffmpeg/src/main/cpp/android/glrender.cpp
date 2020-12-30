@@ -46,6 +46,11 @@ void glrender::init() {
     program = glCreateProgram();
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
+    glLinkProgram(program);
+    glGetProgramiv(program, GL_LINK_STATUS, &param);
+    if (param != GL_TRUE) {
+        LOGE("FFmpeg", "glrender glGetProgramiv :%d", param);
+    }
 
     aPosition = glGetAttribLocation(program, "aPosition");
     aTextureCoord = glGetAttribLocation(program, "aTextureCoord");
@@ -74,6 +79,7 @@ void glrender::init() {
 }
 
 void glrender::render(int texture) {
+    glEnable(GL_TEXTURE_2D);
     glUseProgram(program);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -92,6 +98,7 @@ void glrender::render(int texture) {
     glDisableVertexAttribArray(aTextureCoord);
     glBindTexture(GL_TEXTURE_2D, 0);
     glUseProgram(0);
+
 }
 
 void glrender::free() const {
@@ -102,7 +109,7 @@ int glrender::createTexture(int width, int height, const void *pixels) const {
     GLuint textures[1];
     glGenTextures(1, textures);
     glBindTexture(GL_TEXTURE_2D, textures[0]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -113,7 +120,7 @@ int glrender::createTexture(int width, int height, const void *pixels) const {
 
 void glrender::updateTexture(int texture, int width, int height, const void *pixels) const {
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 

@@ -219,7 +219,8 @@ void *pthread_run_sdl(void *arg) {
     bool firstFrame = true;
     int texture;
     struct SwsContext *sws_ctx;
-    AVFrame *gl_frame = av_frame_alloc();
+    uint8_t *pixels[4];
+    int pitch[4];
 
     while (p->status == PlayerStatus::START) {
         int frameSize = p->vframes.size();
@@ -238,6 +239,10 @@ void *pthread_run_sdl(void *arg) {
             pthread_mutex_unlock(&p->avframes_demuxer);
             pthread_cond_signal(&p->cond_t_demuxer);
             //TODO YUV convert to RGB data
+            int num_bytes = av_image_get_buffer_size(AV_PIX_FMT_RGBA, frame->width, frame->height, 1);
+            auto* p_global_bgr_buffer = (uint8_t*) malloc(num_bytes * sizeof(uint8_t));
+            uint8_t* bgr_buffer[4] = {p_global_bgr_buffer};
+            int linesize[4] = { frame->width*4};
             if(firstFrame){
                 firstFrame = false;
                 sws_ctx = sws_getContext(
@@ -246,15 +251,25 @@ void *pthread_run_sdl(void *arg) {
                         static_cast<AVPixelFormat>(frame->format),
                         frame->width,
                         frame->height,
-                        AV_PIX_FMT_RGB24,
+                        AV_PIX_FMT_RGBA,
                         SWS_BICUBIC, nullptr, nullptr, nullptr);
 
-                sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, gl_frame->data, gl_frame->linesize);
-                texture = render.createTexture(frame->width, frame->height, gl_frame->data[0]);
+                int ret = sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, bgr_buffer, linesize);
+//                int ret = sws_scale(sws_ctx, (const uint8_t * const *)frame->data, frame->linesize,
+//                          0, frame->height, pixels, pitch);
+                LOGE("FFmpeg", "sws_scale ret:%d", ret);
+                texture = render.createTexture(frame->width, frame->height, bgr_buffer[0]);
             } else {
-                sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, gl_frame->data, gl_frame->linesize);
-                render.updateTexture(texture, frame->width, frame->height, gl_frame->data[0]);
+                int ret = sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, bgr_buffer, linesize);
+//                int ret = sws_scale(sws_ctx, (const uint8_t * const *)frame->data, frame->linesize,
+//                          0, frame->height, pixels, pitch);
+                LOGE("FFmpeg", "sws_scale ret:%d", ret);
+                render.updateTexture(texture, frame->width, frame->height, bgr_buffer[0]);
             }
+            LOGE("FFmpeg", "pthread_run_sdl texture:%d", texture);
+            glViewport(0,0 , frame->width, frame->height);
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             render.render(texture);
             egl.swap();
             av_frame_free(&frame);
@@ -267,6 +282,7 @@ void *pthread_run_sdl(void *arg) {
     if(sws_ctx){
         sws_freeContext(sws_ctx);
     }
+    //TODO 是否纹理
     LOGE("FFmpeg", "pthread_run_sdl end");
     return nullptr;
 }
@@ -308,4 +324,27 @@ player::~player() {
     url = nullptr;
     LOGE("FFmpeg", "~player()");
 }
+
+/* Prepare a dummy image. */
+static void fill_yuv_image(AVFrame *pict, int frame_index,
+                           int width, int height)
+{
+    int x, y, i;
+
+    i = frame_index;
+
+    /* Y */
+    for (y = 0; y < height; y++)
+        for (x = 0; x < width; x++)
+            pict->data[0][y * pict->linesize[0] + x] = x + y + i * 3;
+
+    /* Cb and Cr */
+    for (y = 0; y < height / 2; y++) {
+        for (x = 0; x < width / 2; x++) {
+            pict->data[1][y * pict->linesize[1] + x] = 128 + y + i * 2;
+            pict->data[2][y * pict->linesize[2] + x] = 64 + x + i * 5;
+        }
+    }
+}
+
 
