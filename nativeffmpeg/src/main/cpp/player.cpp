@@ -106,12 +106,9 @@ void *pthread_run_demuxer(void *arg) {
     auto *p = reinterpret_cast<player *>(arg);
     LOGE("FFmpeg", "pthread_run_demuxer tid_demuxer:%ld", p->tid_demuxer);
     AVPacket pkt;
-    uint8_t *video_dst_data[4];
-    int video_dst_linesize[4];
     int video_stream_idx;
     int audio_stream_idx;
     int ret;
-    int video_dst_bufsize;
     AVCodecContext *video_dec_ctx = nullptr;
     AVCodecContext *audio_dec_ctx = nullptr;
     AVStream *video_stream = nullptr;
@@ -133,20 +130,6 @@ void *pthread_run_demuxer(void *arg) {
     if (open_codec_context(&video_stream_idx, &video_dec_ctx, fmt_ctx, AVMEDIA_TYPE_VIDEO) >= 0) {
         video_stream = fmt_ctx->streams[video_stream_idx];
         /* allocate image where the decoded image will be put */
-        ret = av_image_alloc(
-                video_dst_data,
-                video_dst_linesize,
-                video_dec_ctx->width,
-                video_dec_ctx->height,
-                video_dec_ctx->pix_fmt,
-                1);
-        if (ret < 0) {
-            char *errorStr = av_err2str(ret);
-            LOGE("FFmpeg", "open_codec_context ret:%s", errorStr);
-            goto end;
-        }
-        video_dst_bufsize = ret;
-        LOGE("FFmpeg", "pthread_run_demuxer video_dst_bufsize:%d", video_dst_bufsize);
     } else {
         //TODO open error
         goto end;
@@ -176,14 +159,19 @@ void *pthread_run_demuxer(void *arg) {
         if (pkt.stream_index == video_stream_idx) {
             ret = decode_packet(video_dec_ctx, &pkt, p);
         }
-        if (pkt.stream_index == audio_stream_idx) {
-//            ret = decode_packet(audio_dec_ctx, &pkt, p);
-        }
         if (ret < 0) {
             char *errorStr = av_err2str(ret);
-            LOGE("FFmpeg", "decode_packet errorStr:%s", errorStr);
+            LOGE("FFmpeg", "decode_packet video errorStr:%s", errorStr);
             break;
         }
+//        if (pkt.stream_index == audio_stream_idx) {
+//            ret = decode_packet(audio_dec_ctx, &pkt, p);
+//        }
+//        if (ret < 0) {
+//            char *errorStr = av_err2str(ret);
+//            LOGE("FFmpeg", "decode_packet audio errorStr:%s", errorStr);
+//            break;
+//        }
         pthread_cond_signal(&p->cond_t_sdl);
         int frameSize = p->vframes.size();
         if (frameSize >= 30) {
@@ -202,7 +190,6 @@ void *pthread_run_demuxer(void *arg) {
         avcodec_free_context(&audio_dec_ctx);
     }
 //    AVPacket *packet = &pkt;
-//    av_packet_free(&packet);
     avformat_close_input(&fmt_ctx);
 //    av_free(video_dst_data);
     LOGE("FFmpeg", "play end");
@@ -219,8 +206,8 @@ void *pthread_run_sdl(void *arg) {
     bool firstFrame = true;
     int texture;
     struct SwsContext *sws_ctx;
-    uint8_t *pixels[4];
-    int pitch[4];
+    uint8_t **pixels;
+    int *pitch;
 
     while (p->status == PlayerStatus::START) {
         int frameSize = p->vframes.size();
@@ -239,10 +226,7 @@ void *pthread_run_sdl(void *arg) {
             pthread_mutex_unlock(&p->avframes_demuxer);
             pthread_cond_signal(&p->cond_t_demuxer);
             //TODO YUV convert to RGB data
-            int num_bytes = av_image_get_buffer_size(AV_PIX_FMT_RGBA, frame->width, frame->height, 1);
-            auto* p_global_bgr_buffer = (uint8_t*) malloc(num_bytes * sizeof(uint8_t));
-            uint8_t* bgr_buffer[4] = {p_global_bgr_buffer};
-            int linesize[4] = { frame->width*4};
+
             if(firstFrame){
                 firstFrame = false;
                 sws_ctx = sws_getContext(
@@ -254,17 +238,19 @@ void *pthread_run_sdl(void *arg) {
                         AV_PIX_FMT_RGBA,
                         SWS_BICUBIC, nullptr, nullptr, nullptr);
 
-                int ret = sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, bgr_buffer, linesize);
-//                int ret = sws_scale(sws_ctx, (const uint8_t * const *)frame->data, frame->linesize,
-//                          0, frame->height, pixels, pitch);
+                int num_bytes = av_image_get_buffer_size(AV_PIX_FMT_RGBA, frame->width, frame->height, 1);
+                auto* p_global_bgr_buffer = (uint8_t*) malloc(num_bytes * sizeof(uint8_t));
+                uint8_t* bgr_buffer[4] = {p_global_bgr_buffer};
+                int linesize[4] = { frame->width*4};
+                pixels = bgr_buffer;
+                pitch = linesize;
+                int ret = sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, pixels, pitch);
                 LOGE("FFmpeg", "sws_scale ret:%d", ret);
-                texture = render.createTexture(frame->width, frame->height, bgr_buffer[0]);
+                texture = render.createTexture(frame->width, frame->height, pixels[0]);
             } else {
-                int ret = sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, bgr_buffer, linesize);
-//                int ret = sws_scale(sws_ctx, (const uint8_t * const *)frame->data, frame->linesize,
-//                          0, frame->height, pixels, pitch);
+                int ret = sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, pixels, pitch);
                 LOGE("FFmpeg", "sws_scale ret:%d", ret);
-                render.updateTexture(texture, frame->width, frame->height, bgr_buffer[0]);
+                render.updateTexture(texture, frame->width, frame->height, pixels[0]);
             }
             LOGE("FFmpeg", "pthread_run_sdl texture:%d", texture);
             glViewport(0,0 , frame->width, frame->height);
@@ -282,7 +268,7 @@ void *pthread_run_sdl(void *arg) {
     if(sws_ctx){
         sws_freeContext(sws_ctx);
     }
-    //TODO 是否纹理
+    //TODO 释放纹理及缓存数据
     LOGE("FFmpeg", "pthread_run_sdl end");
     return nullptr;
 }
