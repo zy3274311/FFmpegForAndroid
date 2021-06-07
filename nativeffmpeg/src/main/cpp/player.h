@@ -17,28 +17,37 @@ enum PlayerStatus {
 
 class player {
 public:
-    ANativeWindow *window;
-    pthread_mutex_t avframes_demuxer;
+    ANativeWindow *window = nullptr;
+    int width{};
+    int height{};
+
+    pthread_mutex_t mutex_t_avframes{};
     std::deque<AVFrame*> vframes;
     std::deque<AVFrame*> aframes;
     PlayerStatus status;
     const char *url = nullptr;
 
-    pthread_t tid_demuxer;
-    pthread_mutex_t mutex_t_demuxer;
-    pthread_cond_t cond_t_demuxer;
+    pthread_t tid_demuxer{};
+    pthread_mutex_t mutex_t_demuxer{};
+    pthread_cond_t cond_t_demuxer{};
 
-    pthread_t tid_sdl;
-    pthread_mutex_t mutex_t_sdl;
-    pthread_cond_t cond_t_sdl;
+    pthread_t tid_sdl{};
+    pthread_mutex_t mutex_t_sdl{};
+    pthread_cond_t cond_t_sdl{};
 
     player();
 
     ~player();
 
-    void init();
+    void setSurface(ANativeWindow *pWindow, int w, int h) {
+        this->window = pWindow;
+        this->width = w;
+        this->height = h;
+    }
 
-    void setDataSource(const char *url_);
+    void setDataSource(const char *url_) {
+        url = url_;
+    }
 
     void play();
 

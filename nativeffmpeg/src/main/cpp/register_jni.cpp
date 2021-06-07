@@ -105,7 +105,7 @@ int Load_Player(JNIEnv *env) {
     // Register your class' native methods.
     static const JNINativeMethod methods[] = {
             {"_init",          "()J",                    (jlong *) (native_init)},
-            {"_setSurface", "(JLandroid/view/Surface;)V", (void *) (native_setSurface)},
+            {"_setSurface", "(JLjava/lang/Object;II)V", (void *) (native_setSurface)},
             {"_setDataSource", "(JLjava/lang/String;)V", (void *) (native_setDataSource)},
             {"_play",          "(J)V",                   (void *) (native_play)},
             {"_stop",          "(J)V",                   (void *) (native_stop)},

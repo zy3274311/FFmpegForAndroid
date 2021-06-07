@@ -132,3 +132,11 @@ void glrender::setIdentityM(float *sm, int smOffset) {
         sm[smOffset + i] = 1.0f;
     }
 }
+
+void glrender::centerInside(int inWidth, int inHeight, int outWidth, int outHeight) {
+
+}
+
+void glrender::centerCrop(int inWidth, int inHeight, int outWidth, int outHeight) {
+
+}

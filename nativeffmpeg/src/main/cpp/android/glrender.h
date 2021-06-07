@@ -18,8 +18,16 @@ private:
     float mvpMatrix[16];//uMVPMatrix
     float texMatrix[16];//uTexMatrix
 
-    float vertexBuffer[8] = {-1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f};
-    float texBuffer[8] = {0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,1.0f, 1.0f};
+    float vertexBuffer[8] = {
+            -1.0f, -1.0f,
+            1.0f, -1.0f,
+            -1.0f, 1.0f,
+            1.0f, 1.0f};
+    float texBuffer[8] = {
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            0.0f, 1.0f,
+            1.0f, 1.0f};
     int coordsPerVertex;
     int vertexStride;
     int texStride;
@@ -34,7 +42,11 @@ public:
 
     void updateTexture(int texture,int width, int height, const void *pixels) const;
 
-    static void setIdentityM(float *sm, int smOffset);
+    void setIdentityM(float *sm, int smOffset);
+
+    void centerInside(int inWidth, int inHeight, int outWidth, int outHeight);
+
+    void centerCrop(int inWidth, int inHeight, int outWidth, int outHeight);
 };
 
 #endif //FFMPEGFORANDROID_GLRENDER_H

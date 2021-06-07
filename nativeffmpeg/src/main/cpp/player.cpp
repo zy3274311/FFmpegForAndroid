@@ -15,10 +15,10 @@ static int open_codec_context(int *stream_idx,
                               enum AVMediaType type) {
     int ret, stream_index;
     AVStream *st;
-    AVCodec *dec = NULL;
-    AVDictionary *opts = NULL;
+    AVCodec *dec;
+    AVDictionary *opts = nullptr;
 
-    ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
+    ret = av_find_best_stream(fmt_ctx, type, -1, -1, nullptr, 0);
     if (ret < 0) {
         char *errorStr = av_err2str(ret);
         LOGE("FFmpeg", "av_find_best_stream ret:%s", errorStr);
@@ -62,7 +62,7 @@ static int open_codec_context(int *stream_idx,
 
 static int
 decode_packet(AVCodecContext *dec, const AVPacket *pkt, player *p) {
-    int ret = 0;
+    int ret;
     // submit the packet to the decoder
     ret = avcodec_send_packet(dec, pkt);
     if (ret < 0) {
@@ -84,22 +84,13 @@ decode_packet(AVCodecContext *dec, const AVPacket *pkt, player *p) {
             av_frame_free(&frame);
             return ret;
         }
-        LOGE("FFmpeg", "AVFrame pkt_size:%d", frame->pkt_size);
-        pthread_mutex_trylock(&p->avframes_demuxer);
+        LOGE("FFmpeg", "pthread_mutex_lock:mutex_t_avframes 1");
+        pthread_mutex_lock(&p->mutex_t_avframes);
         p->vframes.push_back(frame);
-        pthread_mutex_trylock(&p->avframes_demuxer);
+        LOGE("FFmpeg", "pthread_mutex_unlock:mutex_t_avframes 1");
+        pthread_mutex_unlock(&p->mutex_t_avframes);
     }
     return 0;
-}
-
-void player::init() {
-    LOGE("FFmpeg", "init");
-    LOGE("FFmpeg", "init vframes:%d", vframes.size());
-    status = INIT;
-}
-
-void player::setDataSource(const char *url_) {
-    url = url_;
 }
 
 void *pthread_run_demuxer(void *arg) {
@@ -111,20 +102,20 @@ void *pthread_run_demuxer(void *arg) {
     int ret;
     AVCodecContext *video_dec_ctx = nullptr;
     AVCodecContext *audio_dec_ctx = nullptr;
-    AVStream *video_stream = nullptr;
-    AVStream *audio_stream = nullptr;
+    AVStream *video_stream;
+    AVStream *audio_stream;
     AVFormatContext *fmt_ctx = nullptr;
     fmt_ctx = avformat_alloc_context();
     ret = avformat_open_input(&fmt_ctx, p->url, nullptr, nullptr);
     if (ret < 0) {
         char *errorStr = av_err2str(ret);
-        LOGE("FFmpeg", "avformat_open_input ret:%s", errorStr);
+        LOGE("FFmpeg", "pthread_run_demuxer avformat_open_input ret:%s", errorStr);
         goto end;
     }
     ret = avformat_find_stream_info(fmt_ctx, nullptr);
     if (ret < 0) {
         char *errorStr = av_err2str(ret);
-        LOGE("FFmpeg", "avformat_find_stream_info ret:%s", errorStr);
+        LOGE("FFmpeg", "pthread_run_demuxer avformat_find_stream_info ret:%s", errorStr);
         goto end;
     }
     if (open_codec_context(&video_stream_idx, &video_dec_ctx, fmt_ctx, AVMEDIA_TYPE_VIDEO) >= 0) {
@@ -143,17 +134,17 @@ void *pthread_run_demuxer(void *arg) {
     /* dump input information to stderr */
 //    av_dump_format(fmt_ctx, 0, p->url, 0);
     if (!audio_stream && !video_stream) {
-        LOGE("FFmpeg", "(!audio_stream && !video_stream");
+        LOGE("FFmpeg", "pthread_run_demuxer (!audio_stream && !video_stream");
         goto end;
     }
-    LOGE("FFmpeg", "video_stream_idx:%d", video_stream_idx);
-    LOGE("FFmpeg", "audio_stream_idx:%d", audio_stream_idx);
+    LOGE("FFmpeg", "pthread_run_demuxer video_stream_idx:%d", video_stream_idx);
+    LOGE("FFmpeg", "pthread_run_demuxer audio_stream_idx:%d", audio_stream_idx);
     av_init_packet(&pkt);
     while (p->status == PlayerStatus::START) {
         ret = av_read_frame(fmt_ctx, &pkt);
         if (ret < 0) {
             char *errorStr = av_err2str(ret);
-            LOGE("FFmpeg", "av_read_frame errorStr:%s", errorStr);
+            LOGE("FFmpeg", "pthread_run_demuxer av_read_frame errorStr:%s", errorStr);
             break;
         }
         if (pkt.stream_index == video_stream_idx) {
@@ -161,7 +152,7 @@ void *pthread_run_demuxer(void *arg) {
         }
         if (ret < 0) {
             char *errorStr = av_err2str(ret);
-            LOGE("FFmpeg", "decode_packet video errorStr:%s", errorStr);
+            LOGE("FFmpeg", "pthread_run_demuxer decode_packet video errorStr:%s", errorStr);
             break;
         }
 //        if (pkt.stream_index == audio_stream_idx) {
@@ -173,14 +164,18 @@ void *pthread_run_demuxer(void *arg) {
 //            break;
 //        }
         pthread_cond_signal(&p->cond_t_sdl);
+        LOGE("FFmpeg", "pthread_mutex_lock:mutex_t_avframes 2");
+        pthread_mutex_lock(&p->mutex_t_avframes);
         int frameSize = p->vframes.size();
+        LOGE("FFmpeg", "pthread_mutex_unlock:mutex_t_avframes 2");
+        pthread_mutex_unlock(&p->mutex_t_avframes);
         if (frameSize >= 30) {
             pthread_cond_wait(&p->cond_t_demuxer, &p->mutex_t_demuxer);
         }
-        LOGE("FFmpeg", "av_read_frame size:%d", frameSize);
+        LOGE("FFmpeg", "pthread_run_demuxer av_read_frame size:%d", frameSize);
         av_packet_unref(&pkt);
     }
-    LOGE("FFmpeg", "play succuss");
+    LOGE("FFmpeg", "pthread_run_demuxer succuss");
     end:
     //释放音视频解码器
     if (video_dec_ctx) {
@@ -192,7 +187,7 @@ void *pthread_run_demuxer(void *arg) {
 //    AVPacket *packet = &pkt;
     avformat_close_input(&fmt_ctx);
 //    av_free(video_dst_data);
-    LOGE("FFmpeg", "play end");
+    LOGE("FFmpeg", "pthread_run_demuxer end");
     return nullptr;
 }
 
@@ -210,9 +205,12 @@ void *pthread_run_sdl(void *arg) {
     int *pitch;
 
     while (p->status == PlayerStatus::START) {
+        LOGE("FFmpeg", "pthread_mutex_lock:mutex_t_avframes 3");
+        pthread_mutex_lock(&p->mutex_t_avframes);
+        LOGE("FFmpeg", "pthread_mutex_lock:mutex_t_avframes 3.1");
         int frameSize = p->vframes.size();
+        LOGE("FFmpeg", "mutex_t_avframes frameSize:%d", frameSize);
         if (frameSize > 0) {
-            pthread_mutex_trylock(&p->avframes_demuxer);
             AVFrame *frame = p->vframes.front();
             p->vframes.pop_front();
             LOGE("FFmpeg", "pthread_run_sdl AVFrame width:%d", frame->width);
@@ -223,11 +221,14 @@ void *pthread_run_sdl(void *arg) {
             LOGE("FFmpeg", "pthread_run_sdl AVFrame linesize[1]:%d", frame->linesize[1]);
             LOGE("FFmpeg", "pthread_run_sdl AVFrame linesize[2]:%d", frame->linesize[2]);
             LOGE("FFmpeg", "pthread_run_sdl AVFrame linesize[3]:%d", frame->linesize[3]);
-            pthread_mutex_unlock(&p->avframes_demuxer);
+
+            LOGE("FFmpeg", "pthread_mutex_unlock:mutex_t_avframes 3");
+            pthread_mutex_unlock(&p->mutex_t_avframes);
             pthread_cond_signal(&p->cond_t_demuxer);
+
             //TODO YUV convert to RGB data
 
-            if(firstFrame){
+            if (firstFrame) {
                 firstFrame = false;
                 sws_ctx = sws_getContext(
                         frame->width,
@@ -238,34 +239,39 @@ void *pthread_run_sdl(void *arg) {
                         AV_PIX_FMT_RGBA,
                         SWS_BICUBIC, nullptr, nullptr, nullptr);
 
-                int num_bytes = av_image_get_buffer_size(AV_PIX_FMT_RGBA, frame->width, frame->height, 1);
-                auto* p_global_bgr_buffer = (uint8_t*) malloc(num_bytes * sizeof(uint8_t));
-                uint8_t* bgr_buffer[4] = {p_global_bgr_buffer};
-                int linesize[4] = { frame->width*4};
+                int num_bytes = av_image_get_buffer_size(AV_PIX_FMT_RGBA, frame->width,
+                                                         frame->height, 1);
+                auto *p_global_bgr_buffer = (uint8_t *) malloc(num_bytes * sizeof(uint8_t));
+                uint8_t *bgr_buffer[4] = {p_global_bgr_buffer};
+                int linesize[4] = {frame->width * 4};
                 pixels = bgr_buffer;
                 pitch = linesize;
-                int ret = sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, pixels, pitch);
+                int ret = sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, pixels,
+                                    pitch);
                 LOGE("FFmpeg", "sws_scale ret:%d", ret);
                 texture = render.createTexture(frame->width, frame->height, pixels[0]);
             } else {
-                int ret = sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, pixels, pitch);
+                int ret = sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, pixels,
+                                    pitch);
                 LOGE("FFmpeg", "sws_scale ret:%d", ret);
                 render.updateTexture(texture, frame->width, frame->height, pixels[0]);
             }
             LOGE("FFmpeg", "pthread_run_sdl texture:%d", texture);
-            glViewport(0,0 , frame->width, frame->height);
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+//            glViewport(0,0 , frame->width, frame->height);
+            glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             render.render(texture);
             egl.swap();
             av_frame_free(&frame);
         } else {
+            LOGE("FFmpeg", "pthread_mutex_unlock:mutex_t_avframes 3");
+            pthread_mutex_unlock(&p->mutex_t_avframes);
             pthread_cond_wait(&p->cond_t_sdl, &p->mutex_t_sdl);
         }
     }
     render.free();
     egl.free();
-    if(sws_ctx){
+    if (sws_ctx) {
         sws_freeContext(sws_ctx);
     }
     //TODO 释放纹理及缓存数据
@@ -275,46 +281,61 @@ void *pthread_run_sdl(void *arg) {
 
 void player::play() {
     LOGE("FFmpeg", "play url:%s", url);
-    status = START;
-    int ret;
-    ret = pthread_create(&tid_demuxer, nullptr, pthread_run_demuxer, this);
-    LOGE("FFmpeg", "pthread_create tid_demuxer ret:%d", ret);
+    if(status!=START&&status!=RELEASE){
+        status = START;
+        int ret;
+        ret = pthread_create(&tid_demuxer, nullptr, pthread_run_demuxer, this);
+        LOGE("FFmpeg", "pthread_create tid_demuxer ret:%d", ret);
 
-    ret = pthread_create(&tid_sdl, nullptr, pthread_run_sdl, this);
-    LOGE("FFmpeg", "pthread_create tid_sdl ret:%d", ret);
+        ret = pthread_create(&tid_sdl, nullptr, pthread_run_sdl, this);
+        LOGE("FFmpeg", "pthread_create tid_sdl ret:%d", ret);
+    }
 }
 
 void player::stop() {
     LOGE("FFmpeg", "stop url:%s", url);
-    status = STOPED;
-    pthread_cond_signal(&cond_t_demuxer);
-    pthread_cond_signal(&cond_t_sdl);
+    if (status == START) {
+        status = STOPED;
+        pthread_cond_signal(&cond_t_demuxer);
+        pthread_cond_signal(&cond_t_sdl);
+        pthread_join(tid_demuxer, nullptr);
+        pthread_join(tid_sdl, nullptr);
+    }
 }
 
 void player::release() {
     LOGE("FFmpeg", "release url:%s", url);
     LOGE("FFmpeg", "release vframes:%d", vframes.size());
-    status = RELEASE;
-    pthread_cond_signal(&cond_t_demuxer);
-    pthread_cond_signal(&cond_t_sdl);
-    pthread_join(tid_demuxer,nullptr);
-    pthread_join(tid_sdl,nullptr);
+    LOGE("FFmpeg", "release tid_demuxer:%ld", tid_demuxer);
+    LOGE("FFmpeg", "release tid_sdl:%ld", tid_sdl);
+    stop();
     LOGE("FFmpeg", "release end");
 }
 
 player::player() {
     LOGE("FFmpeg", "player()");
+    pthread_mutex_init(&mutex_t_avframes, nullptr);
+    pthread_mutex_init(&mutex_t_demuxer, nullptr);
+    pthread_mutex_init(&mutex_t_sdl, nullptr);
+    pthread_cond_init(&cond_t_demuxer, nullptr);
+    pthread_cond_init(&cond_t_sdl, nullptr);
+    status = INIT;
 }
 
 player::~player() {
-    url = nullptr;
     LOGE("FFmpeg", "~player()");
+    url = nullptr;
+    status = RELEASE;
+    pthread_mutex_destroy(&mutex_t_avframes);
+    pthread_mutex_destroy(&mutex_t_demuxer);
+    pthread_mutex_destroy(&mutex_t_sdl);
+    pthread_cond_destroy(&cond_t_demuxer);
+    pthread_cond_destroy(&cond_t_sdl);
 }
 
 /* Prepare a dummy image. */
 static void fill_yuv_image(AVFrame *pict, int frame_index,
-                           int width, int height)
-{
+                           int width, int height) {
     int x, y, i;
 
     i = frame_index;
