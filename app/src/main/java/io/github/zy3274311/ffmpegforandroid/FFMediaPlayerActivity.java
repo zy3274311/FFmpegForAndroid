@@ -9,10 +9,12 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.media.FFmpegMediaExtractor;
+
 import io.github.zy3274311.nativeffmpeg.player.FFMediaPlayer;
 
 public class FFMediaPlayerActivity extends AppCompatActivity {
-    private static final String URL = "http://wliveplay.58cdn.com.cn/live/IkW51401779846694096899.flv";
+    private static final String URL = "http://wliveplay.58cdn.com.cn/live/l6DI1438765034745376768.flv";
     private FFMediaPlayer ffMediaPlayer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +50,8 @@ public class FFMediaPlayerActivity extends AppCompatActivity {
         url_tv.setText(URL);
         ffMediaPlayer = new FFMediaPlayer();
         ffMediaPlayer.setDataSource(URL);
+
+        FFmpegMediaExtractor extractor = new FFmpegMediaExtractor();
     }
 
     @Override

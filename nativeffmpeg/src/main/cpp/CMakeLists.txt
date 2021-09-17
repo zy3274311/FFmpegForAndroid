@@ -10,37 +10,43 @@ cmake_minimum_required(VERSION 3.10.2)
 project("ffmpegforandroid")
 
 # configure import libs
-set(distribution_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../distribution)
+#set(IMPORTED_TYPE SHARED)
+#set(IMPORTED_TYPE_PATH shared)
+#set(FILE_SUFFIX so)
+
+# configure lib dir
+set(DISTRIBUTION_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../distribution)
 
 # ffmpeg
+set(FFMPEG_DIR ${DISTRIBUTION_DIR}/ffmpeg/${ANDROID_ABI})
 
 add_library(avutil SHARED IMPORTED)
 set_target_properties(avutil PROPERTIES IMPORTED_LOCATION
-        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavutil.so)
+        ${FFMPEG_DIR}/lib/libavutil.so)
 
 add_library(swscale SHARED IMPORTED)
 set_target_properties(swscale PROPERTIES IMPORTED_LOCATION
-        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libswscale.so)
+        ${FFMPEG_DIR}/lib/libswscale.so)
 
 add_library(avformat SHARED IMPORTED)
 set_target_properties(avformat PROPERTIES IMPORTED_LOCATION
-        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavformat.so)
+        ${FFMPEG_DIR}/lib/libavformat.so)
 
-#add_library(libavfilter SHARED IMPORTED)
-#set_target_properties(libavfilter PROPERTIES IMPORTED_LOCATION
-#        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavfilter.so)
-#
-#add_library(libavdevice SHARED IMPORTED)
-#set_target_properties(libavdevice PROPERTIES IMPORTED_LOCATION
-#        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavdevice.so)
+add_library(avfilter SHARED IMPORTED)
+set_target_properties(avfilter PROPERTIES IMPORTED_LOCATION
+        ${FFMPEG_DIR}/lib/libavfilter.so)
+
+add_library(avdevice SHARED IMPORTED)
+set_target_properties(avdevice PROPERTIES IMPORTED_LOCATION
+        ${FFMPEG_DIR}/lib/libavdevice.so)
 
 add_library(avcodec SHARED IMPORTED)
 set_target_properties(avcodec PROPERTIES IMPORTED_LOCATION
-        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libavcodec.so)
+        ${FFMPEG_DIR}/lib/libavcodec.so)
 
 add_library(swresample SHARED IMPORTED)
 set_target_properties(swresample PROPERTIES IMPORTED_LOCATION
-        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/lib/libswresample.so)
+        ${FFMPEG_DIR}/lib/libswresample.so)
 
 
 # Creates and names a library, sets it as either STATIC
@@ -65,8 +71,7 @@ add_library( # Sets the name of the library.
         android/glrender.cpp)
 
 # add ffmpeg include
-target_include_directories(ffmpeg PUBLIC
-        ${distribution_DIR}/ffmpeg/${ANDROID_ABI}/include)
+target_include_directories(ffmpeg PUBLIC ${FFMPEG_DIR}/include)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -88,14 +93,24 @@ find_library( # Sets the name of the path variable.
 target_link_libraries( # Specifies the target library.
         ffmpeg
 
-        swscale
+        #增加ffmpeg库，注意顺序（具体看lib/pkgconfig的依赖关系）
+        avdevice
+        avfilter
         avformat
-        avutil
-        swresample
         avcodec
+        swresample
+        swscale
+        avutil
+        #增加ffmpeg所需要的依赖库
+        -lm -lz
+
         EGL
         GLESv2
+
         android
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib} )
+
+#set(OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../output)
+#export(TARGETS ffmpeg FILE ${OUTPUT_DIR}/cmake/Findffmpeg.cmake)

@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 
+import com.example.media.NativeMedia;
+
 import java.util.Locale;
 
 import io.github.zy3274311.nativeffmpeg.FFmpeg;
@@ -20,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         FFmpeg.loadLibrary();
+        NativeMedia.loadLibrary();
         // Example of a call to a native method
         TextView tv = findViewById(R.id.sample_text);
         AVFormat avFormat = new AVFormat();

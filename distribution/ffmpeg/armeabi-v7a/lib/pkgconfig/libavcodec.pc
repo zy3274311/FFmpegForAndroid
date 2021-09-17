@@ -5,7 +5,7 @@ includedir=/home/ubuntu/cworkspace/ffmpeg/build/armeabi-v7a/include
 
 Name: libavcodec
 Description: FFmpeg codec library
-Version: 58.111.101
+Version: 58.112.101
 Requires: 
 Requires.private: libswresample >= 3.8.100, libavutil >= 56.60.100
 Conflicts:

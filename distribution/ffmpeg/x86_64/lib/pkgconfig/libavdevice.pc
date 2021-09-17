@@ -7,7 +7,7 @@ Name: libavdevice
 Description: FFmpeg device handling library
 Version: 58.11.102
 Requires: 
-Requires.private: libavfilter >= 7.87.100, libswscale >= 5.8.100, libavformat >= 58.62.100, libavcodec >= 58.111.101, libswresample >= 3.8.100, libavutil >= 56.60.100
+Requires.private: libavfilter >= 7.89.100, libswscale >= 5.8.100, libavformat >= 58.64.100, libavcodec >= 58.112.101, libswresample >= 3.8.100, libavutil >= 56.60.100
 Conflicts:
 Libs: -L${libdir}  -lavdevice 
 Libs.private: -lm

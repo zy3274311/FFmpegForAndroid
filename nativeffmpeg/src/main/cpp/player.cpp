@@ -187,6 +187,7 @@ void *pthread_run_demuxer(void *arg) {
 //    AVPacket *packet = &pkt;
     avformat_close_input(&fmt_ctx);
 //    av_free(video_dst_data);
+    p->status = STOPED;
     LOGE("FFmpeg", "pthread_run_demuxer end");
     return nullptr;
 }
@@ -281,6 +282,7 @@ void *pthread_run_sdl(void *arg) {
 
 void player::play() {
     LOGE("FFmpeg", "play url:%s", url);
+    LOGE("FFmpeg", "play status:%d", status);
     if(status!=START&&status!=RELEASE){
         status = START;
         int ret;
@@ -294,6 +296,7 @@ void player::play() {
 
 void player::stop() {
     LOGE("FFmpeg", "stop url:%s", url);
+    LOGE("FFmpeg", "play status:%d", status);
     if (status == START) {
         status = STOPED;
         pthread_cond_signal(&cond_t_demuxer);
