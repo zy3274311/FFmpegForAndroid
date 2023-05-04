@@ -15,7 +15,6 @@
             <option value="$PROJECT_DIR$/nativeffmpeg" />
           </set>
         </option>
-        <option name="resolveModulePerSourceSet" value="false" />
       </GradleProjectSettings>
     </option>
   </component>
